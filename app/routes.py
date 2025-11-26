@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, jsonify
+from datetime import datetime
 from app.models import Performer, Video, db
 from app.scraper import scrape_performer
 from app.downloader import download_video
@@ -87,6 +88,7 @@ def update_performer_settings(performer_id):
     performer = Performer.query.get_or_404(performer_id)
     performer.blacklist_keywords = request.form.get('blacklist_keywords')
     performer.whitelist_keywords = request.form.get('whitelist_keywords')
+    performer.scheduled_scan_enabled = 'scheduled_scan_enabled' in request.form
     db.session.commit()
     return "<div class='alert alert-success'>Settings saved!</div>"
 
@@ -263,6 +265,16 @@ def settings():
     except Exception:
         ytdlp_version = "Unknown"
 
+    # Get next scheduled scan time
+    from app.scheduler import scheduler
+    next_scan_time = None
+    try:
+        job = scheduler.get_job('scheduled_scan')
+        if job and job.next_run_time:
+            next_scan_time = job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')
+    except Exception:
+        pass
+
     return render_template('settings.html', 
                            blacklist=blacklist.value if blacklist else '',
                            whitelist=whitelist.value if whitelist else '',
@@ -277,7 +289,8 @@ def settings():
                            local_check_existing=local_check_existing.value if local_check_existing else 'true',
                            yt_dlp_auto_update=yt_dlp_auto_update.value if yt_dlp_auto_update else 'false',
                            yt_dlp_version=ytdlp_version,
-                           yt_dlp_last_updated=yt_dlp_last_updated.value if yt_dlp_last_updated else 'Never')
+                           yt_dlp_last_updated=yt_dlp_last_updated.value if yt_dlp_last_updated else 'Never',
+                           next_scan_time=next_scan_time)
 
 @main.route('/settings/<key>', methods=['POST'])
 def update_settings(key):
@@ -412,3 +425,149 @@ def test_stash():
         return f"<div class='alert alert-success mt-3 mb-0'>{message}</div>"
     else:
         return f"<div class='alert alert-danger mt-3 mb-0'>Error: {message}</div>"
+
+@main.route('/settings/export', methods=['GET'])
+def export_performers():
+    import json
+    from io import BytesIO
+    from flask import send_file
+    
+    performers = Performer.query.all()
+    export_data = []
+    
+    for p in performers:
+        # Get ignored videos
+        ignored_videos = []
+        for v in p.videos.filter_by(status='ignored').all():
+            ignored_videos.append({
+                'title': v.title,
+                'url': v.url,
+                'viewkey': v.viewkey,
+                'duration': v.duration
+            })
+            
+        p_data = {
+            'id': p.id,
+            'name': p.name,
+            'site': p.site,
+            'type': p.type,
+            'scheduled_scan_enabled': p.scheduled_scan_enabled,
+            'blacklist_keywords': p.blacklist_keywords,
+            'whitelist_keywords': p.whitelist_keywords,
+            'last_scan': p.last_scan.isoformat() if p.last_scan else None,
+            'ignored_videos': ignored_videos
+        }
+        export_data.append(p_data)
+        
+    # Create JSON file in memory
+    json_str = json.dumps(export_data, indent=2)
+    mem = BytesIO()
+    mem.write(json_str.encode('utf-8'))
+    mem.seek(0)
+    
+    return send_file(
+        mem,
+        as_attachment=True,
+        download_name=f'siphon_performers_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json',
+        mimetype='application/json'
+    )
+
+@main.route('/settings/import', methods=['POST'])
+def import_performers():
+    import json
+    
+    if 'file' not in request.files:
+        return "<div class='alert alert-danger'>No file uploaded</div>"
+        
+    file = request.files['file']
+    if file.filename == '':
+        return "<div class='alert alert-danger'>No file selected</div>"
+        
+    if not file.filename.endswith('.json'):
+        return "<div class='alert alert-danger'>Invalid file type. Please upload a JSON file.</div>"
+        
+    try:
+        data = json.load(file)
+        if not isinstance(data, list):
+            return "<div class='alert alert-danger'>Invalid JSON format. Expected a list of performers.</div>"
+            
+        count_updated = 0
+        count_created = 0
+        
+        for p_data in data:
+            p_id = p_data.get('id')
+            if not p_id:
+                continue
+                
+            performer = Performer.query.get(p_id)
+            if performer:
+                # Update existing
+                performer.name = p_data.get('name', performer.name)
+                performer.site = p_data.get('site', performer.site)
+                performer.type = p_data.get('type', performer.type)
+                performer.scheduled_scan_enabled = p_data.get('scheduled_scan_enabled', performer.scheduled_scan_enabled)
+                
+                # Merge keywords (simple concatenation with comma check would be messy, 
+                # let's just overwrite if provided, or maybe append? 
+                # Plan said "merge". Let's try to be smart about it.)
+                
+                def merge_keywords(current, new):
+                    if not new: return current
+                    if not current: return new
+                    # Split by comma, strip, set, join
+                    c_set = set([k.strip() for k in current.split(',') if k.strip()])
+                    n_set = set([k.strip() for k in new.split(',') if k.strip()])
+                    return ', '.join(sorted(list(c_set.union(n_set))))
+
+                performer.blacklist_keywords = merge_keywords(performer.blacklist_keywords, p_data.get('blacklist_keywords'))
+                performer.whitelist_keywords = merge_keywords(performer.whitelist_keywords, p_data.get('whitelist_keywords'))
+                
+                count_updated += 1
+            else:
+                # Create new
+                performer = Performer(
+                    id=p_id,
+                    name=p_data.get('name'),
+                    site=p_data.get('site'),
+                    type=p_data.get('type'),
+                    scheduled_scan_enabled=p_data.get('scheduled_scan_enabled', True),
+                    blacklist_keywords=p_data.get('blacklist_keywords'),
+                    whitelist_keywords=p_data.get('whitelist_keywords')
+                )
+                if p_data.get('last_scan'):
+                    try:
+                        performer.last_scan = datetime.fromisoformat(p_data.get('last_scan'))
+                    except:
+                        pass
+                db.session.add(performer)
+                count_created += 1
+            
+            # Process ignored videos
+            ignored_videos = p_data.get('ignored_videos', [])
+            for v_data in ignored_videos:
+                viewkey = v_data.get('viewkey')
+                if not viewkey: continue
+                
+                # Check if video exists
+                video = Video.query.filter_by(performer_id=p_id, viewkey=viewkey).first()
+                if video:
+                    if video.status != 'downloaded': # Don't overwrite downloaded status
+                        video.status = 'ignored'
+                else:
+                    # Create new ignored video record
+                    video = Video(
+                        performer_id=p_id,
+                        title=v_data.get('title', 'Unknown'),
+                        url=v_data.get('url', ''),
+                        viewkey=viewkey,
+                        duration=v_data.get('duration'),
+                        status='ignored'
+                    )
+                    db.session.add(video)
+                    
+        db.session.commit()
+        return f"<div class='alert alert-success'>Import successful! Created {count_created}, Updated {count_updated} performers.</div>"
+        
+    except Exception as e:
+        return f"<div class='alert alert-danger'>Error importing file: {str(e)}</div>"
+

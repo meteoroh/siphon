@@ -1,199 +1,273 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Settings</h1>
-
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                Global Blacklist
-            </div>
-            <div class="card-body">
-                <p class="text-muted">Comma-separated keywords to exclude from all downloads.</p>
-                <form hx-post="/settings/blacklist" hx-target="#blacklist-message" hx-swap="innerHTML">
-                    <div class="mb-3">
-                        <textarea class="form-control" name="blacklist" rows="5">{{ blacklist }}</textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Save Blacklist</button>
-                    <div id="blacklist-message"></div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                Global Whitelist
-            </div>
-            <div class="card-body">
-                <p class="text-muted">Comma-separated keywords. If set, ONLY videos matching these will be downloaded
-                    (unless overridden by performer settings).</p>
-                <form hx-post="/settings/whitelist" hx-target="#whitelist-message" hx-swap="innerHTML">
-                    <div class="mb-3">
-                        <textarea class="form-control" name="whitelist" rows="5">{{ whitelist }}</textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Save Whitelist</button>
-                    <div id="whitelist-message"></div>
-                </form>
-            </div>
-        </div>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Settings</h1>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                Stash Integration
-            </div>
-            <div class="card-body">
-                <form hx-post="/settings/stash" hx-target="#stash-message" hx-swap="innerHTML">
-                    <div class="mb-3">
-                        <label class="form-label">Stash URL (GraphQL Endpoint)</label>
-                        <input type="text" class="form-control" name="stash_url" value="{{ stash_url }}"
-                            placeholder="http://localhost:9999/graphql">
-                    </div>
-                    <div class="mb-3">
-                        <label for="stash_api_key" class="form-label">Stash API Key</label>
-                        <input type="password" class="form-control" id="stash_api_key" name="stash_api_key"
-                            value="{{ stash_api_key }}">
-                    </div>
-                    <div class="mb-3">
-                        <label for="stash_path_mapping" class="form-label">Path Mapping (Optional)</label>
-                        <input type="text" class="form-control" id="stash_path_mapping" name="stash_path_mapping"
-                            value="{{ stash_path_mapping }}" placeholder="/Volumes/media=/mnt/media">
-                        <div class="form-text">Format: <code>LocalPath=RemotePath</code>. Maps local file paths to Stash
-                            server paths.</div>
-                    </div>
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="stash_check_existing"
-                            name="stash_check_existing" {% if stash_check_existing=='true' %}checked{% endif %}>
-                        <label class="form-check-label" for="stash_check_existing">Check for existing videos in Stash
-                            during scan</label>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Save Stash Settings</button>
-                    <button class="btn btn-secondary" hx-post="/settings/stash/test" hx-target="#stash-message"
-                        hx-swap="innerHTML">Test
-                        Connection</button>
-                    <div id="stash-message"></div>
-                </form>
-            </div>
+<div class="row">
+    <!-- Sidebar Navigation -->
+    <div class="col-md-3 mb-4">
+        <div class="list-group sticky-top border-0 shadow-sm rounded-3 overflow-hidden" style="top: 20px;"
+            id="settings-list-tab" role="tablist">
+            <a class="list-group-item list-group-item-action border-0 py-3 active" id="list-general-list"
+                data-bs-toggle="list" href="#list-general" role="tab" aria-controls="list-general">
+                <i class="bi bi-sliders me-2"></i> General
+            </a>
+            <a class="list-group-item list-group-item-action border-0 py-3" id="list-filters-list" data-bs-toggle="list"
+                href="#list-filters" role="tab" aria-controls="list-filters">
+                <i class="bi bi-funnel me-2"></i> Filters
+            </a>
+            <a class="list-group-item list-group-item-action border-0 py-3" id="list-data-list" data-bs-toggle="list"
+                href="#list-data" role="tab" aria-controls="list-data">
+                <i class="bi bi-database-down me-2"></i> Data Management
+            </a>
         </div>
     </div>
-</div>
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                Local Video Directory
-            </div>
-            <div class="card-body">
-                <form hx-post="/settings/localpath" hx-target="#localpath-message" hx-swap="innerHTML">
-                    <div class="mb-3">
-                        <label class="form-label">Local Video Directory</label>
-                        <input type="text" class="form-control" name="local_scan_path" value="{{ local_scan_path }}"
-                            placeholder="/path/to/videos">
-                        <div class="form-text">Directory for downloads. Also used to scan for existing videos if
-                            <strong>"Check for existing videos"</strong> is enabled below.</div>
-                    </div>
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="local_check_existing"
-                            name="local_check_existing" {% if local_check_existing=='true' %}checked{% endif %}>
-                        <label class="form-check-label" for="local_check_existing">Check for existing videos in Local
-                            Path during scan</label>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Save Local Path</button>
-                    <div id="localpath-message"></div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+    <!-- Content Area -->
+    <div class="col-md-9">
+        <div class="tab-content" id="nav-tabContent">
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                Scheduled Scraping
-            </div>
-            <div class="card-body">
-                <form hx-post="/settings/schedule" hx-target="#schedule-message" hx-swap="innerHTML">
-                    <div class="mb-3">
-                        <label class="form-label">Interval (minutes)</label>
-                        <input type="number" class="form-control" name="schedule_interval"
-                            value="{{ schedule_interval }}" placeholder="60">
-                        <div class="form-text">Set to 0 to disable automatic scraping.</div>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Save Schedule</button>
-                    <div id="schedule-message"></div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+            <!-- General Settings -->
+            <div class="tab-pane fade show active" id="list-general" role="tabpanel"
+                aria-labelledby="list-general-list">
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                System Settings
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">yt-dlp Update</label>
-                    <div class="form-text">
-                        Current Version: <strong>{{ yt_dlp_version }}</strong><br>
-                        Last Updated: <strong>{{ yt_dlp_last_updated }}</strong>
+                <!-- Scanning Schedule -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="mb-0 fw-bold">Scanning Schedule</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <form hx-post="/settings/schedule" hx-target="#schedule-message" hx-swap="innerHTML">
+                            <label class="form-label text-xs text-uppercase text-muted fw-bold">Interval
+                                (minutes)</label>
+                            <div class="mb-2">
+                                <input type="number" class="form-control" name="schedule_interval"
+                                    value="{{ schedule_interval }}">
+                            </div>
+                            {% if next_scan_time %}
+                            <div class="text-muted small mb-3">
+                                <i class="bi bi-clock me-1"></i> Next Scan: {{ next_scan_time }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text text-muted mb-3">Set to 0 to disable automatic background scanning.
+                            </div>
+                            <button class="btn btn-primary" type="submit">Save Schedule</button>
+                            <div id="schedule-message" class="mt-2"></div>
+                        </form>
                     </div>
                 </div>
-                <button class="btn btn-warning" hx-post="/settings/update-ytdlp" hx-swap="innerHTML"
-                    hx-target="#ytdlp-message">
-                    Update yt-dlp Now
-                </button>
-                <div id="ytdlp-message" class="mt-2"></div>
 
-                <hr>
+                <!-- Telegram -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="mb-0 fw-bold">Telegram Notifications</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <form hx-post="/settings/telegram" hx-target="#telegram-message" hx-swap="innerHTML">
+                            <div class="mb-3">
+                                <label class="form-label text-xs text-uppercase text-muted fw-bold">Bot Token</label>
+                                <input type="text" class="form-control" name="telegram_token"
+                                    value="{{ telegram_token }}">
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label text-xs text-uppercase text-muted fw-bold">Chat ID</label>
+                                <input type="text" class="form-control" name="telegram_chat_id"
+                                    value="{{ telegram_chat_id }}">
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">Save Settings</button>
+                                <button class="btn btn-outline-secondary" hx-post="/settings/telegram/test"
+                                    hx-target="#telegram-message" hx-swap="innerHTML">Test Notification</button>
+                            </div>
+                            <div id="telegram-message" class="mt-2"></div>
+                        </form>
+                    </div>
+                </div>
 
-                <form hx-post="/settings/autoupdate" hx-target="#autoupdate-message" hx-swap="innerHTML">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" name="yt_dlp_auto_update" id="autoUpdateCheck"
-                            {% if yt_dlp_auto_update=='true' %}checked{% endif %}>
-                        <label class="form-check-label" for="autoUpdateCheck">Auto-update yt-dlp (Daily)</label>
+                <!-- System (yt-dlp) -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="mb-0 fw-bold">System</h5>
                     </div>
-                    <button type="submit" class="btn btn-primary mt-2">Save Auto-Update Setting</button>
-                    <div id="autoupdate-message"></div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+                    <div class="card-body p-4">
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <h6 class="fw-bold mb-0">yt-dlp</h6>
+                                <span class="badge bg-light text-dark border">{{ yt_dlp_version }}</span>
+                            </div>
+                            <div class="text-muted small">Updated {{ yt_dlp_last_updated }}</div>
+                        </div>
+                        <div id="ytdlp-message" class="mb-3"></div>
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                Telegram Notification
-            </div>
-            <div class="card-body">
-                <form hx-post="/settings/telegram" hx-target="#telegram-message" hx-swap="innerHTML">
-                    <div class="mb-3">
-                        <label class="form-label">Bot Token</label>
-                        <input type="text" class="form-control" name="telegram_token" value="{{ telegram_token }}">
+                        <form hx-post="/settings/autoupdate" hx-target="#autoupdate-message" hx-swap="innerHTML">
+                            <div class="mb-4 form-check">
+                                <input type="checkbox" class="form-check-input" id="autoUpdateCheck"
+                                    name="yt_dlp_auto_update" {% if yt_dlp_auto_update=='true' %}checked{% endif %}>
+                                <label class="form-check-label fw-medium" for="autoUpdateCheck">Automatic Updates
+                                    (Daily)</label>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">Save Settings</button>
+                                <button class="btn btn-outline-secondary" hx-post="/settings/update-ytdlp"
+                                    hx-swap="innerHTML" hx-target="#ytdlp-message">
+                                    Update Now
+                                </button>
+                            </div>
+                            <div id="autoupdate-message" class="mt-2"></div>
+                        </form>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Chat ID</label>
-                        <input type="text" class="form-control" name="telegram_chat_id" value="{{ telegram_chat_id }}">
-                    </div>
-                    <button type="submit" class="btn btn-primary">Save Telegram Settings</button>
-                    <button class="btn btn-secondary" hx-post="/settings/telegram/test" hx-target="#telegram-message"
-                        hx-swap="innerHTML">Test
-                        Notification</button>
-                    <div id="telegram-message"></div>
-                </form>
+                </div>
             </div>
+
+            <!-- Filters -->
+            <div class="tab-pane fade" id="list-filters" role="tabpanel" aria-labelledby="list-filters-list">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="mb-0 fw-bold">Global Blacklist</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <p class="text-muted small mb-3">Comma-separated keywords. Videos containing these words in the
+                            title
+                            will be ignored automatically.</p>
+                        <form hx-post="/settings/blacklist" hx-target="#blacklist-message" hx-swap="innerHTML">
+                            <div class="mb-3">
+                                <textarea class="form-control" name="blacklist" rows="5"
+                                    placeholder="e.g. vr, compilation">{{ blacklist }}</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Blacklist</button>
+                            <div id="blacklist-message" class="mt-2"></div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="mb-0 fw-bold">Global Whitelist</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <p class="text-muted small mb-3">Comma-separated keywords. If set, ONLY videos containing these
+                            words
+                            will be downloaded (unless overridden by performer settings).</p>
+                        <form hx-post="/settings/whitelist" hx-target="#whitelist-message" hx-swap="innerHTML">
+                            <div class="mb-3">
+                                <textarea class="form-control" name="whitelist" rows="5"
+                                    placeholder="e.g. 4k, exclusive">{{ whitelist }}</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Whitelist</button>
+                            <div id="whitelist-message" class="mt-2"></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Management -->
+            <div class="tab-pane fade" id="list-data" role="tabpanel" aria-labelledby="list-data-list">
+
+                <!-- Local Storage -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="mb-0 fw-bold">Local Storage</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <form hx-post="/settings/localpath" hx-target="#localpath-message" hx-swap="innerHTML">
+                            <div class="mb-3">
+                                <label class="form-label text-xs text-uppercase text-muted fw-bold">Download
+                                    Directory</label>
+                                <input type="text" class="form-control" name="local_scan_path"
+                                    value="{{ local_scan_path }}" placeholder="/path/to/videos">
+                                <div class="form-text">Directory where videos will be downloaded.</div>
+                            </div>
+                            <div class="mb-4 form-check">
+                                <input type="checkbox" class="form-check-input" id="local_check_existing"
+                                    name="local_check_existing" {% if local_check_existing=='true' %}checked{% endif %}>
+                                <label class="form-check-label fw-medium" for="local_check_existing">Check for existing
+                                    videos in
+                                    this directory during scan</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Path</button>
+                            <div id="localpath-message" class="mt-2"></div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Stash -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="mb-0 fw-bold">Stash Integration</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <form hx-post="/settings/stash" hx-target="#stash-message" hx-swap="innerHTML">
+                            <div class="mb-3">
+                                <label class="form-label text-xs text-uppercase text-muted fw-bold">Stash GraphQL
+                                    URL</label>
+                                <input type="text" class="form-control" name="stash_url" value="{{ stash_url }}"
+                                    placeholder="http://localhost:9999/graphql">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-xs text-uppercase text-muted fw-bold">API Key</label>
+                                <input type="password" class="form-control" name="stash_api_key"
+                                    value="{{ stash_api_key }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-xs text-uppercase text-muted fw-bold">Path Mapping</label>
+                                <input type="text" class="form-control" name="stash_path_mapping"
+                                    value="{{ stash_path_mapping }}" placeholder="/Volumes/media=/mnt/media">
+                                <div class="form-text">Format: <code>LocalPath=RemotePath</code>. Maps local paths to
+                                    Stash server paths.</div>
+                            </div>
+                            <div class="mb-4 form-check">
+                                <input type="checkbox" class="form-check-input" id="stash_check_existing"
+                                    name="stash_check_existing" {% if stash_check_existing=='true' %}checked{% endif %}>
+                                <label class="form-check-label fw-medium" for="stash_check_existing">Check for existing
+                                    videos in
+                                    Stash</label>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">Save Settings</button>
+                                <button class="btn btn-outline-secondary" hx-post="/settings/stash/test"
+                                    hx-target="#stash-message" hx-swap="innerHTML">Test Connection</button>
+                            </div>
+                            <div id="stash-message" class="mt-2"></div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Export/Import -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="mb-0 fw-bold">Backup & Restore</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-2">Export Data</h6>
+                            <p class="text-muted small mb-3">Download a JSON backup of all performers, keywords, and
+                                ignored
+                                videos.</p>
+                            <a href="/settings/export" class="btn btn-outline-primary shadow-sm">
+                                <i class="bi bi-download me-1"></i> Export Performers
+                            </a>
+                        </div>
+                        <hr class="text-muted opacity-25">
+                        <div class="mt-4">
+                            <h6 class="fw-bold mb-2">Import Data</h6>
+                            <p class="text-muted small mb-3">Upload a JSON backup to merge with existing data.</p>
+                            <form hx-post="/settings/import" hx-encoding="multipart/form-data"
+                                hx-target="#import-result">
+                                <div class="input-group mb-2">
+                                    <input type="file" class="form-control" name="file" accept=".json" required>
+                                    <button class="btn btn-warning shadow-sm" type="submit">
+                                        <i class="bi bi-upload me-1"></i> Import
+                                    </button>
+                                </div>
+                                <div id="import-result"></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>

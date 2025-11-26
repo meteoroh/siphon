@@ -10,7 +10,7 @@ def scheduled_scan():
         print("Starting scheduled scan...")
         from app.services import scan_performer_service
         
-        performers = Performer.query.all()
+        performers = Performer.query.filter_by(scheduled_scan_enabled=True).all()
         total_new = 0
         
         for performer in performers:

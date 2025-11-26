@@ -6,10 +6,9 @@ class Performer(db.Model):
     name = db.Column(db.String(128), nullable=False)
     site = db.Column(db.String(64), nullable=False) # 'pornhub' or 'xhamster'
     type = db.Column(db.String(64), nullable=False) # 'model', 'pornstar', 'creator'
-    filter_enabled = db.Column(db.Boolean, default=False)
-    keywords = db.Column(db.Text, nullable=True) # JSON string or comma-separated (Legacy/Global filter)
     blacklist_keywords = db.Column(db.Text, nullable=True) # JSON string or comma-separated
     whitelist_keywords = db.Column(db.Text, nullable=True) # JSON string or comma-separated
+    scheduled_scan_enabled = db.Column(db.Boolean, default=True)
     last_scan = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -21,8 +20,7 @@ class Performer(db.Model):
             'name': self.name,
             'site': self.site,
             'type': self.type,
-            'filter_enabled': self.filter_enabled,
-            'keywords': self.keywords
+            'scheduled_scan_enabled': self.scheduled_scan_enabled
         }
 
     @property

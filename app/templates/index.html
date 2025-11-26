@@ -2,163 +2,209 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Performers</h1>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPerformerModal">
-        Add Performer
+    <h1 class="h3 mb-0">Performers</h1>
+    <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addPerformerModal">
+        <i class="bi bi-plus-lg me-1"></i> Add Performer
     </button>
 </div>
 
 <form action="/performers" method="get" class="mb-4">
-    <div class="input-group">
-        <input type="text" class="form-control" name="q" placeholder="Search performers..."
+    <div class="input-group shadow-sm rounded-3 overflow-hidden border-0">
+        <span class="input-group-text bg-white border-0 ps-3">
+            <i class="bi bi-search text-muted"></i>
+        </span>
+        <input type="text" class="form-control border-0 py-2" name="q" placeholder="Search performers..."
             value="{{ request.args.get('q', '') }}">
-        <button class="btn btn-outline-secondary" type="submit">Search</button>
+        <button class="btn btn-primary px-4" type="submit">Search</button>
     </div>
 </form>
 
-<div class="row" id="performers-list">
-    {% for performer in performers %}
-    <div class="col-md-4 mb-4">
-        <div class="card h-100 border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-3">
-                <span
-                    class="badge rounded-pill {{ 'bg-warning text-dark' if performer.site == 'pornhub' else 'bg-danger' }}">
-                    {{ performer.site }}
-                </span>
-                <div class="dropdown">
-                    <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-three-dots-vertical"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li>
-                            <button class="dropdown-item" data-bs-toggle="modal"
-                                data-bs-target="#editPerformerModal{{ performer.id }}">
-                                <i class="bi bi-pencil me-2"></i>Edit
-                            </button>
-                        </li>
-                        <li>
-                            <hr class="dropdown-divider">
-                        </li>
-                        <li>
-                            <button class="dropdown-item text-danger" hx-delete="/performers/{{ performer.id }}/delete"
-                                hx-confirm="Are you sure you want to delete {{ performer.name }}?"
-                                hx-target="closest .col-md-4" hx-swap="outerHTML">
-                                <i class="bi bi-trash me-2"></i>Delete
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-            <div class="card-body text-center pt-0">
-                <h5 class="card-title fw-bold mb-1 text-truncate" title="{{ performer.name }}">{{ performer.name }}</h5>
-                <p class="text-muted small mb-3">{{ performer.type }}</p>
-
-                <div id="performer-stats-{{ performer.id }}" class="mb-4 p-3 bg-light rounded-3">
-                    {% set new_count = performer.videos.filter_by(status='new').count() %}
-                    <div class="display-6 fw-bold {{ 'text-success' if new_count > 0 else 'text-muted' }}">
-                        {{ new_count }}
-                    </div>
-                    <div class="small text-uppercase fw-bold text-muted"
-                        style="font-size: 0.7rem; letter-spacing: 1px;">New Videos</div>
-                    <div class="mt-2 pt-2 border-top">
-                        <small class="text-muted">
-                            <i class="bi bi-clock me-1"></i>
+<div class="card border-0 shadow-sm overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light align-middle">
+                <tr>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-4 py-3"
+                        style="font-size: 0.75rem; letter-spacing: 0.5px;">Name</th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                        style="font-size: 0.75rem; letter-spacing: 0.5px;">Site</th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                        style="font-size: 0.75rem; letter-spacing: 0.5px;">Type</th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                        style="font-size: 0.75rem; letter-spacing: 0.5px;">New Videos</th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                        style="font-size: 0.75rem; letter-spacing: 0.5px;">Last Scan</th>
+                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7"
+                        style="font-size: 0.75rem; letter-spacing: 0.5px;">Scheduled</th>
+                    <th class="text-end text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 pe-4"
+                        style="font-size: 0.75rem; letter-spacing: 0.5px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="performers-table-body">
+                {% for performer in performers %}
+                <tr>
+                    <td class="ps-4 py-3">
+                        <div class="d-flex flex-column">
+                            <a href="/performers/{{ performer.id }}"
+                                class="text-decoration-none fw-bold text-dark mb-0">
+                                {{ performer.name }}
+                            </a>
+                            <small class="text-muted text-xs">{{ performer.id }}</small>
+                        </div>
+                    </td>
+                    <td>
+                        <span
+                            class="badge rounded-pill {{ 'bg-warning-subtle text-warning-emphasis' if performer.site == 'pornhub' else 'bg-danger-subtle text-danger-emphasis' }} border border-0">
+                            {{ performer.site }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary-subtle text-secondary-emphasis border border-0 rounded-pill">{{
+                            performer.type }}</span>
+                    </td>
+                    <td>
+                        <div id="performer-stats-{{ performer.id }}">
+                            {% set new_count = performer.videos.filter_by(status='new').count() %}
+                            {% if new_count > 0 %}
+                            <span class="badge bg-success-subtle text-success-emphasis rounded-pill border border-0">{{
+                                new_count }} New</span>
+                            {% else %}
+                            <span class="text-muted small ms-2">-</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="text-secondary text-xs font-weight-bold">
                             {{ performer.last_scan.strftime('%Y-%m-%d') if performer.last_scan else 'Never' }}
-                        </small>
-                    </div>
-                </div>
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        {% if performer.scheduled_scan_enabled %}
+                        <i class="bi bi-check-circle-fill text-success" title="Enabled"></i>
+                        {% else %}
+                        <i class="bi bi-dash-circle text-muted opacity-50" title="Disabled"></i>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <div class="btn-group">
+                            <button class="btn btn-link text-secondary p-0 me-3" hx-post="/scan/{{ performer.id }}"
+                                hx-target="#performer-stats-{{ performer.id }}" hx-swap="innerHTML" title="Scan Now">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </button>
+                            <button class="btn btn-link text-secondary p-0 me-3" data-bs-toggle="modal"
+                                data-bs-target="#editPerformerModal{{ performer.id }}" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-link text-danger p-0"
+                                hx-delete="/performers/{{ performer.id }}/delete"
+                                hx-confirm="Are you sure you want to delete {{ performer.name }}?"
+                                hx-target="closest tr" hx-swap="outerHTML" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
 
-                <div class="d-grid gap-2">
-                    <a href="/performers/{{ performer.id }}" class="btn btn-outline-primary">
-                        <i class="bi bi-collection-play me-1"></i> View Videos
-                    </a>
-                    <button class="btn btn-primary" hx-post="/scan/{{ performer.id }}"
-                        hx-target="#performer-stats-{{ performer.id }}" hx-swap="innerHTML">
-                        <i class="bi bi-arrow-repeat me-1"></i> Scan Now
-                    </button>
-                </div>
-            </div>
-        </div>
+                        <!-- Edit Performer Modal -->
+                        <div class="modal fade text-start" id="editPerformerModal{{ performer.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content border-0 shadow">
+                                    <div class="modal-header border-0 pb-0">
+                                        <h5 class="modal-title fw-bold">Edit Performer</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body pt-4">
+                                        <form hx-post="/performers/{{ performer.id }}/edit" hx-swap="none"
+                                            onsubmit="bootstrap.Modal.getInstance(document.getElementById('editPerformerModal{{ performer.id }}')).hide(); setTimeout(() => location.reload(), 500);">
+                                            <div class="mb-3">
+                                                <label
+                                                    class="form-label text-xs text-uppercase text-muted fw-bold">Name</label>
+                                                <input type="text" class="form-control" name="name"
+                                                    value="{{ performer.name }}" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label
+                                                    class="form-label text-xs text-uppercase text-muted fw-bold">Site</label>
+                                                <select class="form-select" name="site">
+                                                    <option value="pornhub" {% if performer.site=='pornhub' %}selected{%
+                                                        endif %}>Pornhub</option>
+                                                    <option value="xhamster" {% if performer.site=='xhamster'
+                                                        %}selected{% endif %}>xHamster</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-4">
+                                                <label
+                                                    class="form-label text-xs text-uppercase text-muted fw-bold">Type</label>
+                                                <select class="form-select" name="type">
+                                                    <option value="model" {% if performer.type=='model' %}selected{%
+                                                        endif %}>Model</option>
+                                                    <option value="pornstar" {% if performer.type=='pornstar'
+                                                        %}selected{% endif %}>Pornstar</option>
+                                                    <option value="creator" {% if performer.type=='creator' %}selected{%
+                                                        endif %}>Creator</option>
+                                                </select>
+                                            </div>
+                                            <div class="d-grid">
+                                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <div class="mb-3">
+                            <i class="bi bi-people display-4 opacity-25"></i>
+                        </div>
+                        <p class="mb-0">No performers found.</p>
+                        <small>Click "Add Performer" to get started.</small>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-
-    <!-- Edit Performer Modal -->
-    <div class="modal fade" id="editPerformerModal{{ performer.id }}" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Performer: {{ performer.name }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form hx-post="/performers/{{ performer.id }}/edit" hx-swap="none"
-                        onsubmit="bootstrap.Modal.getInstance(document.getElementById('editPerformerModal{{ performer.id }}')).hide(); setTimeout(() => location.reload(), 500);">
-                        <div class="mb-3">
-                            <label class="form-label">Name</label>
-                            <input type="text" class="form-control" name="name" value="{{ performer.name }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Site</label>
-                            <select class="form-select" name="site">
-                                <option value="pornhub" {% if performer.site=='pornhub' %}selected{% endif %}>Pornhub
-                                </option>
-                                <option value="xhamster" {% if performer.site=='xhamster' %}selected{% endif %}>xHamster
-                                </option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Type</label>
-                            <select class="form-select" name="type">
-                                <option value="model" {% if performer.type=='model' %}selected{% endif %}>Model</option>
-                                <option value="pornstar" {% if performer.type=='pornstar' %}selected{% endif %}>Pornstar
-                                </option>
-                                <option value="creator" {% if performer.type=='creator' %}selected{% endif %}>Creator
-                                </option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
 </div>
 
 <!-- Add Performer Modal -->
 <div class="modal fade" id="addPerformerModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Performer</h5>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Add Performer</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <form hx-post="/performers" hx-target="#performers-list" hx-swap="beforeend"
-                    onsubmit="bootstrap.Modal.getInstance(document.getElementById('addPerformerModal')).hide()">
+            <div class="modal-body pt-4">
+                <form action="/performers" method="post">
                     <div class="mb-3">
-                        <label class="form-label">Name</label>
+                        <label class="form-label text-xs text-uppercase text-muted fw-bold">Name</label>
                         <input type="text" class="form-control" name="name" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">ID</label>
+                        <label class="form-label text-xs text-uppercase text-muted fw-bold">ID</label>
                         <input type="text" class="form-control" name="id" required>
+                        <div class="form-text text-xs">The username or ID from the URL.</div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Site</label>
+                        <label class="form-label text-xs text-uppercase text-muted fw-bold">Site</label>
                         <select class="form-select" name="site">
                             <option value="pornhub">Pornhub</option>
                             <option value="xhamster">xHamster</option>
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Type</label>
+                    <div class="mb-4">
+                        <label class="form-label text-xs text-uppercase text-muted fw-bold">Type</label>
                         <select class="form-select" name="type">
                             <option value="model">Model</option>
                             <option value="pornstar">Pornstar</option>
                             <option value="creator">Creator</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-primary">Add</button>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Add Performer</button>
+                    </div>
                 </form>
             </div>
         </div>
