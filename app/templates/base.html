@@ -59,19 +59,23 @@
             font-weight: 600;
             letter-spacing: -0.5px;
         }
+
+        @media (min-width: 768px) {
+            .w-md-auto {
+                width: auto !important;
+            }
+        }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white mb-4">
+    <nav class="navbar navbar-expand navbar-light bg-white mb-4">
         <div class="container" style="max-width: 1000px;">
             <a class="navbar-brand" href="/">Siphon</a>
-            <div class="collapse navbar-collapse">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link" href="/">Performers</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/settings">Settings</a></li>
-                </ul>
-            </div>
+            <ul class="navbar-nav ms-auto flex-row gap-3">
+                <li class="nav-item"><a class="nav-link" href="/">Performers</a></li>
+                <li class="nav-item"><a class="nav-link" href="/settings">Settings</a></li>
+            </ul>
         </div>
     </nav>
 

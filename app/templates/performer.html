@@ -2,7 +2,8 @@
 
 {% block content %}
 <div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div
+        class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-3">
         <div>
             <h1 class="h2 mb-2 d-flex align-items-center">
                 {{ performer.name }}
@@ -21,16 +22,16 @@
                     performer.type }}</span>
             </div>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 w-100 w-md-auto ms-md-auto">
             <div id="scan-container-{{ performer.id }}">
                 <button class="btn btn-primary" hx-post="/scan/{{ performer.id }}"
                     hx-target="#scan-container-{{ performer.id }}" hx-swap="innerHTML">
-                    <i class="bi bi-arrow-repeat me-1"></i> Scan Now
+                    <i class="bi bi-arrow-repeat me-1 d-none d-md-inline"></i> Scan Now
                 </button>
             </div>
             <button class="btn btn-white border" type="button" data-bs-toggle="collapse"
                 data-bs-target="#settingsCollapse">
-                <i class="bi bi-gear me-1"></i> Settings
+                <i class="bi bi-gear me-1 d-none d-md-inline"></i> Settings
             </button>
         </div>
     </div>
@@ -76,26 +77,30 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div
+        class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-3">
         <h3 class="h4 mb-0">Videos</h3>
-        <div class="btn-group" role="group">
+        <div class="btn-group w-100 w-md-auto ms-md-auto" role="group">
             <input type="radio" class="btn-check" name="status-filter" id="filter-all" value="all" checked
                 onclick="filterVideos('all')">
-            <label class="btn btn-outline-secondary btn-sm" for="filter-all">All ({{ videos|length }})</label>
+            <label class="btn btn-outline-secondary btn-sm flex-fill flex-md-grow-0" for="filter-all">All ({{
+                videos|length }})</label>
 
             <input type="radio" class="btn-check" name="status-filter" id="filter-new" value="new"
                 onclick="filterVideos('new')">
-            <label class="btn btn-outline-success btn-sm" for="filter-new">New ({{ videos|selectattr('status',
+            <label class="btn btn-outline-success btn-sm flex-fill flex-md-grow-0" for="filter-new">New ({{
+                videos|selectattr('status',
                 'equalto', 'new')|list|length }})</label>
 
             <input type="radio" class="btn-check" name="status-filter" id="filter-downloaded" value="downloaded"
                 onclick="filterVideos('downloaded')">
-            <label class="btn btn-outline-primary btn-sm" for="filter-downloaded">Downloaded ({{
+            <label class="btn btn-outline-primary btn-sm flex-fill flex-md-grow-0" for="filter-downloaded">Downloaded
+                ({{
                 videos|selectattr('status', 'equalto', 'downloaded')|list|length }})</label>
 
             <input type="radio" class="btn-check" name="status-filter" id="filter-ignored" value="ignored"
                 onclick="filterVideos('ignored')">
-            <label class="btn btn-outline-danger btn-sm" for="filter-ignored">Ignored ({{
+            <label class="btn btn-outline-danger btn-sm flex-fill flex-md-grow-0" for="filter-ignored">Ignored ({{
                 videos|selectattr('status',
                 'equalto', 'ignored')|list|length }})</label>
         </div>
@@ -106,15 +111,15 @@
             <div class="d-flex gap-2">
                 <button class="btn btn-sm btn-light border" hx-post="/download/batch" hx-target="#batch-message"
                     hx-include="#batch-form">
-                    <i class="bi bi-download me-1"></i> Download Selected
+                    <i class="bi bi-download me-1 d-none d-md-inline"></i> Download Selected
                 </button>
                 <button class="btn btn-sm btn-light border" hx-post="/ignore/batch" hx-target="#batch-message"
                     hx-include="#batch-form">
-                    <i class="bi bi-x-circle me-1"></i> Ignore Selected
+                    <i class="bi bi-x-circle me-1 d-none d-md-inline"></i> Ignore Selected
                 </button>
                 <button class="btn btn-sm btn-light border" hx-post="/unignore/batch" hx-target="#batch-message"
                     hx-include="#batch-form">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i> Unignore Selected
+                    <i class="bi bi-arrow-counterclockwise me-1 d-none d-md-inline"></i> Unignore Selected
                 </button>
             </div>
         </div>
@@ -160,21 +165,19 @@
                             </td>
                             <td class="text-end pe-4">
                                 {% if video.status == 'new' %}
-                                <button id="btn-download-{{ video.id }}" class="btn btn-sm btn-success"
+                                <button id="btn-download-{{ video.id }}" class="btn btn-sm btn-outline-success"
                                     hx-post="/download/{{ video.id }}" hx-swap="outerHTML" title="Download">
                                     <i class="bi bi-download"></i>
                                 </button>
-                                <button id="btn-ignore-{{ video.id }}" class="btn btn-sm btn-light text-danger"
+                                <button id="btn-ignore-{{ video.id }}" class="btn btn-sm btn-outline-danger"
                                     hx-post="/videos/{{ video.id }}/ignore" hx-target="closest tr" hx-swap="delete"
                                     title="Ignore">
                                     <i class="bi bi-x-lg"></i>
                                 </button>
                                 {% elif video.status == 'downloaded' %}
-                                <button class="btn btn-sm btn-light text-muted border" disabled>
-                                    <i class="bi bi-check2 me-1"></i> Downloaded
-                                </button>
+
                                 {% elif video.status == 'ignored' %}
-                                <button class="btn btn-sm btn-light text-secondary"
+                                <button class="btn btn-sm btn-outline-secondary"
                                     hx-post="/videos/{{ video.id }}/unignore" hx-target="closest tr" hx-swap="delete"
                                     title="Unignore">
                                     <i class="bi bi-arrow-counterclockwise"></i>

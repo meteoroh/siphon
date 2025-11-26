@@ -15,7 +15,7 @@
         </span>
         <input type="text" class="form-control border-0 py-2" name="q" placeholder="Search performers..."
             value="{{ request.args.get('q', '') }}">
-        <button class="btn btn-primary px-4" type="submit">Search</button>
+        <button class="btn btn-secondary px-4" type="submit">Search</button>
     </div>
 </form>
 
@@ -87,15 +87,15 @@
                     </td>
                     <td class="text-end pe-4">
                         <div class="d-flex gap-2 justify-content-end">
-                            <button class="btn btn-sm btn-light text-primary" hx-post="/scan/{{ performer.id }}"
+                            <button class="btn btn-sm btn-outline-primary" hx-post="/scan/{{ performer.id }}"
                                 hx-target="#performer-stats-{{ performer.id }}" hx-swap="innerHTML" title="Scan Now">
                                 <i class="bi bi-arrow-repeat"></i>
                             </button>
-                            <button class="btn btn-sm btn-light text-secondary" data-bs-toggle="modal"
+                            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
                                 data-bs-target="#editPerformerModal{{ performer.id }}" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn btn-sm btn-light text-danger"
+                            <button class="btn btn-sm btn-outline-danger"
                                 hx-delete="/performers/{{ performer.id }}/delete"
                                 hx-confirm="Are you sure you want to delete {{ performer.name }}?"
                                 hx-target="closest tr" hx-swap="outerHTML" title="Delete">

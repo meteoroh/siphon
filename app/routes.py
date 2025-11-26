@@ -199,8 +199,9 @@ def download_video_route(video_id):
     
     task_id = start_task(download_video, video_id)
     
-    # Return initial progress bar
-    return render_template('components/progress_bar.html', task_id=task_id, message="Starting download...", progress=0)
+    # Return initial progress bar and remove ignore button
+    pb_html = render_template('components/progress_bar.html', task_id=task_id, message="Starting download...", progress=0)
+    return f'{pb_html}<div hx-swap-oob="delete:#btn-ignore-{video_id}"></div>'
 
 @main.route('/task/status/<task_id>', methods=['GET'])
 def task_status(task_id):
@@ -215,7 +216,7 @@ def task_status(task_id):
         if task.get('result') and isinstance(task['result'], dict) and 'new_count' in task['result']:
              return f"""
             <div class="alert alert-success py-1 px-2 small">
-                Scan complete. Found {task['result']['new_count']} new.
+                Scan complete.
                 <script>setTimeout(() => location.reload(), 1000);</script>
             </div>
             """
