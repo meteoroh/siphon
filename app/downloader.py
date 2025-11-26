@@ -139,7 +139,8 @@ def download_video(task_id, video_id):
             # -------------------------
 
             update_task_progress(task_id, progress=100, message="Download complete")
-            return True, "Download successful"
+            update_task_progress(task_id, progress=100, message="Download complete")
+            return {'video_id': video_id, 'status': 'success'}
         except Exception as e:
             update_task_progress(task_id, message=f"Error: {str(e)}")
             raise e

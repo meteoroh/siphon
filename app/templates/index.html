@@ -177,7 +177,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body pt-4">
-                <form action="/performers" method="post">
+                <form hx-post="/performers" hx-target="#performers-table-body" hx-swap="afterbegin"
+                    hx-on::after-request="if(event.detail.successful) { this.reset(); bootstrap.Modal.getInstance(document.getElementById('addPerformerModal')).hide(); }">
                     <div class="mb-3">
                         <label class="form-label text-xs text-uppercase text-muted fw-bold">Name</label>
                         <input type="text" class="form-control" name="name" required>

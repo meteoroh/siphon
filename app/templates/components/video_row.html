@@ -1,0 +1,39 @@
+<tr id="video-row-{{ video.id }}" data-status="{{ video.status }}" {% if oob %}hx-swap-oob="true" {% endif %}>
+    <td class="ps-4"><input type="checkbox" class="form-check-input" name="video_ids" value="{{ video.id }}" {% if
+            video.status=='downloaded' %}disabled{% endif %}></td>
+    <td>
+        <a href="{{ video.url }}" target="_blank" class="text-decoration-none text-dark text-truncate d-block"
+            style="max-width: 500px;">
+            {{ video.title }}
+        </a>
+    </td>
+    <td class="text-secondary text-sm">{{ video.duration or 'N/A' }}</td>
+    <td>
+        <span class="badge rounded-pill border border-0 
+        {{ 'bg-primary-subtle text-primary-emphasis' if video.status == 'downloaded' 
+        else 'bg-secondary-subtle text-secondary-emphasis' if video.status == 'ignored' 
+        else 'bg-success-subtle text-success-emphasis' }}">
+            {{ video.status|capitalize }}
+        </span>
+    </td>
+    <td class="text-end pe-4">
+        {% if video.status == 'new' %}
+        <button id="btn-download-{{ video.id }}" class="btn btn-sm btn-outline-success"
+            hx-post="/download/{{ video.id }}" hx-swap="outerHTML" title="Download">
+            <i class="bi bi-download"></i>
+        </button>
+        <button id="btn-ignore-{{ video.id }}" class="btn btn-sm btn-outline-danger"
+            hx-post="/videos/{{ video.id }}/ignore" hx-target="#video-row-{{ video.id }}" hx-swap="outerHTML"
+            title="Ignore">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        {% elif video.status == 'downloaded' %}
+
+        {% elif video.status == 'ignored' %}
+        <button class="btn btn-sm btn-outline-secondary" hx-post="/videos/{{ video.id }}/unignore"
+            hx-target="#video-row-{{ video.id }}" hx-swap="outerHTML" title="Unignore">
+            <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+        {% endif %}
+    </td>
+</tr>

@@ -80,202 +80,198 @@
     <div
         class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-3">
         <h3 class="h4 mb-0">Videos</h3>
+
         <div class="btn-group w-100 w-md-auto ms-md-auto" role="group">
             <input type="radio" class="btn-check" name="status-filter" id="filter-all" value="all" checked
-                onclick="filterVideos('all')">
+                onclick="currentFilterStatus='all'; filterVideos('all')">
             <label class="btn btn-outline-secondary btn-sm flex-fill flex-md-grow-0" for="filter-all">All ({{
                 videos|length }})</label>
 
             <input type="radio" class="btn-check" name="status-filter" id="filter-new" value="new"
-                onclick="filterVideos('new')">
+                onclick="currentFilterStatus='new'; filterVideos('new')">
             <label class="btn btn-outline-success btn-sm flex-fill flex-md-grow-0" for="filter-new">New ({{
                 videos|selectattr('status',
                 'equalto', 'new')|list|length }})</label>
 
             <input type="radio" class="btn-check" name="status-filter" id="filter-downloaded" value="downloaded"
-                onclick="filterVideos('downloaded')">
+                onclick="currentFilterStatus='downloaded'; filterVideos('downloaded')">
             <label class="btn btn-outline-primary btn-sm flex-fill flex-md-grow-0" for="filter-downloaded">Downloaded
-                ({{
-                videos|selectattr('status', 'equalto', 'downloaded')|list|length }})</label>
+                ({{ videos|selectattr('status', 'equalto', 'downloaded')|list|length }})</label>
 
             <input type="radio" class="btn-check" name="status-filter" id="filter-ignored" value="ignored"
-                onclick="filterVideos('ignored')">
+                onclick="currentFilterStatus='ignored'; filterVideos('ignored')">
             <label class="btn btn-outline-danger btn-sm flex-fill flex-md-grow-0" for="filter-ignored">Ignored ({{
                 videos|selectattr('status',
                 'equalto', 'ignored')|list|length }})</label>
         </div>
     </div>
+</div>
+<style>
+    /* CSS-based filtering to prevent blink effect */
+    tbody.view-new tr:not([data-status="new"]) {
+        display: none !important;
+    }
 
-    <div class="card border-0 mb-4">
-        <div class="card-header bg-white border-bottom border-light py-3">
-            <div class="d-flex gap-2">
-                <button id="btn-batch-download" class="btn btn-sm btn-outline-primary" hx-post="/download/batch"
-                    hx-target="#batch-message" hx-include="#batch-form" disabled>
-                    <span class="spinner-border spinner-border-sm htmx-indicator" role="status"
-                        aria-hidden="true"></span>
-                    <i class="bi bi-download me-1 d-none d-md-inline"></i> <span class="btn-text">Download
-                        Selected</span>
-                </button>
-                <button id="btn-batch-ignore" class="btn btn-sm btn-outline-danger" hx-post="/ignore/batch"
-                    hx-target="#batch-message" hx-include="#batch-form" disabled>
-                    <span class="spinner-border spinner-border-sm htmx-indicator" role="status"
-                        aria-hidden="true"></span>
-                    <i class="bi bi-x-circle me-1 d-none d-md-inline"></i> <span class="btn-text">Ignore Selected</span>
-                </button>
-                <button id="btn-batch-unignore" class="btn btn-sm btn-outline-secondary" hx-post="/unignore/batch"
-                    hx-target="#batch-message" hx-include="#batch-form" disabled>
-                    <span class="spinner-border spinner-border-sm htmx-indicator" role="status"
-                        aria-hidden="true"></span>
-                    <i class="bi bi-arrow-counterclockwise me-1 d-none d-md-inline"></i> <span class="btn-text">Unignore
-                        Selected</span>
-                </button>
-            </div>
+    tbody.view-downloaded tr:not([data-status="downloaded"]) {
+        display: none !important;
+    }
+
+    tbody.view-ignored tr:not([data-status="ignored"]) {
+        display: none !important;
+    }
+
+    /* view-all shows everything, so no rule needed */
+</style>
+
+<div class="card border-0 mb-4">
+    <div class="card-header bg-white border-bottom border-light py-3">
+        <div class="d-flex gap-2">
+            <button id="btn-batch-download" class="btn btn-sm btn-outline-primary" hx-post="/download/batch"
+                hx-target="#batch-message" hx-include="#batch-form" disabled>
+                <span class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
+                <i class="bi bi-download me-1 d-none d-md-inline"></i> <span class="btn-text">Download
+                    Selected</span>
+            </button>
+            <button id="btn-batch-ignore" class="btn btn-sm btn-outline-danger" hx-post="/ignore/batch"
+                hx-target="#batch-message" hx-include="#batch-form" disabled>
+                <span class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
+                <i class="bi bi-x-circle me-1 d-none d-md-inline"></i> <span class="btn-text">Ignore Selected</span>
+            </button>
+            <button id="btn-batch-unignore" class="btn btn-sm btn-outline-secondary" hx-post="/unignore/batch"
+                hx-target="#batch-message" hx-include="#batch-form" disabled>
+                <span class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
+                <i class="bi bi-arrow-counterclockwise me-1 d-none d-md-inline"></i> <span class="btn-text">Unignore
+                    Selected</span>
+            </button>
         </div>
-
-        <form id="batch-form">
-            <div id="batch-message"></div>
-
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light align-middle">
-                        <tr>
-                            <th class="ps-4 py-3" style="width: 40px;"><input type="checkbox" class="form-check-input"
-                                    onclick="toggleAll(this)"></th>
-                            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
-                                style="font-size: 0.75rem; letter-spacing: 0.5px;">Title</th>
-                            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
-                                style="font-size: 0.75rem; letter-spacing: 0.5px;">Duration</th>
-                            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
-                                style="font-size: 0.75rem; letter-spacing: 0.5px;">Status</th>
-                            <th class="text-end text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 pe-4"
-                                style="font-size: 0.75rem; letter-spacing: 0.5px;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for video in videos %}
-                        <tr data-status="{{ video.status }}">
-                            <td class="ps-4"><input type="checkbox" class="form-check-input" name="video_ids"
-                                    value="{{ video.id }}" {% if video.status=='downloaded' %}disabled{% endif %}></td>
-                            <td>
-                                <a href="{{ video.url }}" target="_blank"
-                                    class="text-decoration-none text-dark text-truncate d-block"
-                                    style="max-width: 500px;">
-                                    {{ video.title }}
-                                </a>
-                            </td>
-                            <td class="text-secondary text-sm">{{ video.duration or 'N/A' }}</td>
-                            <td>
-                                <span class="badge rounded-pill border border-0 
-                                {{ 'bg-primary-subtle text-primary-emphasis' if video.status == 'downloaded' 
-                                else 'bg-secondary-subtle text-secondary-emphasis' if video.status == 'ignored' 
-                                else 'bg-success-subtle text-success-emphasis' }}">
-                                    {{ video.status|capitalize }}
-                                </span>
-                            </td>
-                            <td class="text-end pe-4">
-                                {% if video.status == 'new' %}
-                                <button id="btn-download-{{ video.id }}" class="btn btn-sm btn-outline-success"
-                                    hx-post="/download/{{ video.id }}" hx-swap="outerHTML" title="Download">
-                                    <i class="bi bi-download"></i>
-                                </button>
-                                <button id="btn-ignore-{{ video.id }}" class="btn btn-sm btn-outline-danger"
-                                    hx-post="/videos/{{ video.id }}/ignore" hx-target="closest tr" hx-swap="delete"
-                                    title="Ignore">
-                                    <i class="bi bi-x-lg"></i>
-                                </button>
-                                {% elif video.status == 'downloaded' %}
-
-                                {% elif video.status == 'ignored' %}
-                                <button class="btn btn-sm btn-outline-secondary"
-                                    hx-post="/videos/{{ video.id }}/unignore" hx-target="closest tr" hx-swap="delete"
-                                    title="Unignore">
-                                    <i class="bi bi-arrow-counterclockwise"></i>
-                                </button>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
-                                <i class="bi bi-camera-video display-4 opacity-25 mb-3"></i>
-                                <p>No videos found yet. Try scanning.</p>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </form>
     </div>
 
-    <script>
-        function filterVideos(status) {
-            const rows = document.querySelectorAll('tbody tr');
-            rows.forEach(row => {
-                if (status === 'all' || row.dataset.status === status) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            // Uncheck hidden checkboxes to avoid confusion
-            document.querySelectorAll('tbody tr[style*="display: none"] input[type="checkbox"]').forEach(cb => {
-                cb.checked = false;
-            });
-            updateBatchButtons();
+    <form id="batch-form">
+        <div id="batch-message"></div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light align-middle">
+                    <tr>
+                        <th class="ps-4 py-3" style="width: 40px;"><input type="checkbox" class="form-check-input"
+                                onclick="toggleAll(this)"></th>
+                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                            style="font-size: 0.75rem; letter-spacing: 0.5px;">Title</th>
+                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                            style="font-size: 0.75rem; letter-spacing: 0.5px;">Duration</th>
+                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                            style="font-size: 0.75rem; letter-spacing: 0.5px;">Status</th>
+                        <th class="text-end text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 pe-4"
+                            style="font-size: 0.75rem; letter-spacing: 0.5px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for video in videos %}
+                    {% include 'components/video_row.html' %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-camera-video display-4 opacity-25 mb-3"></i>
+                            <p>No videos found yet. Try scanning.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+</div>
+
+<script>
+    let currentFilterStatus = 'all';
+
+    function filterVideos(status) {
+        currentFilterStatus = status;
+        const tbody = document.querySelector('tbody');
+
+        // Remove all view classes
+        tbody.classList.remove('view-all', 'view-new', 'view-downloaded', 'view-ignored');
+
+        // Add current view class
+        tbody.classList.add(`view-${status}`);
+
+        // Uncheck hidden checkboxes to avoid confusion
+        // We need a small delay or check visibility because CSS change is instant but querySelector might be fast?
+        // Actually, we can just select based on the logic: if we are in view-new, uncheck anything not new.
+
+        if (status !== 'all') {
+            const hiddenCheckboxes = document.querySelectorAll(`tbody tr:not([data-status="${status}"]) input[type="checkbox"]`);
+            hiddenCheckboxes.forEach(cb => cb.checked = false);
         }
 
-        function toggleAll(source) {
-            // Only select visible checkboxes
-            const checkboxes = document.querySelectorAll('tbody tr:not([style*="display: none"]) input[name="video_ids"]');
-            checkboxes.forEach(cb => cb.checked = source.checked);
-            updateBatchButtons(); // Call updateBatchButtons after toggling all
-        }
+        updateBatchButtons();
+    }
 
-        function updateBatchButtons() {
-            const checkedBoxes = document.querySelectorAll('input[name="video_ids"]:checked');
+    function toggleAll(source) {
+        // Only select visible checkboxes
+        const checkboxes = document.querySelectorAll('tbody tr:not([style*="display: none"]) input[name="video_ids"]');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+        updateBatchButtons(); // Call updateBatchButtons after toggling all
+    }
 
-            let newCount = 0;
-            let ignoredCount = 0;
+    function updateBatchButtons() {
+        const checkedBoxes = document.querySelectorAll('input[name="video_ids"]:checked');
 
-            checkedBoxes.forEach(cb => {
-                const row = cb.closest('tr');
-                const status = row.dataset.status;
-                if (status === 'new') newCount++;
-                if (status === 'ignored') ignoredCount++;
-            });
+        let newCount = 0;
+        let ignoredCount = 0;
 
-            const btnDownload = document.getElementById('btn-batch-download');
-            const btnIgnore = document.getElementById('btn-batch-ignore');
-            const btnUnignore = document.getElementById('btn-batch-unignore');
-
-            if (btnDownload) {
-                btnDownload.disabled = newCount === 0;
-                const textSpan = btnDownload.querySelector('.btn-text');
-                if (textSpan) textSpan.textContent = newCount > 0 ? `Download Selected (${newCount})` : 'Download Selected';
-            }
-
-            if (btnIgnore) {
-                btnIgnore.disabled = newCount === 0;
-                const textSpan = btnIgnore.querySelector('.btn-text');
-                if (textSpan) textSpan.textContent = newCount > 0 ? `Ignore Selected (${newCount})` : 'Ignore Selected';
-            }
-
-            if (btnUnignore) {
-                btnUnignore.disabled = ignoredCount === 0;
-                const textSpan = btnUnignore.querySelector('.btn-text');
-                if (textSpan) textSpan.textContent = ignoredCount > 0 ? `Unignore Selected (${ignoredCount})` : 'Unignore Selected';
-            }
-        }
-
-        // Listen for checkbox changes
-        document.addEventListener('change', function (e) {
-            if (e.target.name === 'video_ids') {
-                updateBatchButtons();
-            }
+        checkedBoxes.forEach(cb => {
+            const row = cb.closest('tr');
+            const status = row.dataset.status;
+            if (status === 'new') newCount++;
+            if (status === 'ignored') ignoredCount++;
         });
 
-        // Initial call to set button states on page load
-        document.addEventListener('DOMContentLoaded', updateBatchButtons);
-    </script>
-    {% endblock %}
+        const btnDownload = document.getElementById('btn-batch-download');
+        const btnIgnore = document.getElementById('btn-batch-ignore');
+        const btnUnignore = document.getElementById('btn-batch-unignore');
+
+        if (btnDownload) {
+            btnDownload.disabled = newCount === 0;
+            const textSpan = btnDownload.querySelector('.btn-text');
+            if (textSpan) textSpan.textContent = newCount > 0 ? `Download Selected (${newCount})` : 'Download Selected';
+        }
+
+        if (btnIgnore) {
+            btnIgnore.disabled = newCount === 0;
+            const textSpan = btnIgnore.querySelector('.btn-text');
+            if (textSpan) textSpan.textContent = newCount > 0 ? `Ignore Selected (${newCount})` : 'Ignore Selected';
+        }
+
+        if (btnUnignore) {
+            btnUnignore.disabled = ignoredCount === 0;
+            const textSpan = btnUnignore.querySelector('.btn-text');
+            if (textSpan) textSpan.textContent = ignoredCount > 0 ? `Unignore Selected (${ignoredCount})` : 'Unignore Selected';
+        }
+    }
+
+    // Listen for checkbox changes
+    document.addEventListener('change', function (e) {
+        if (e.target.name === 'video_ids') {
+            updateBatchButtons();
+        }
+    });
+
+    // Initial call to set button states on page load
+    document.addEventListener('DOMContentLoaded', updateBatchButtons);
+
+    // Re-apply filter after HTMX swaps (e.g. batch actions, ignore/unignore)
+    document.body.addEventListener('htmx:afterSwap', function (evt) {
+        updateBatchButtons();
+        // Re-run filter logic to hide/show rows based on new status
+        // With CSS filtering, we just need to ensure the class is set, which it should be.
+        // But if we just swapped a row, it might have the wrong display style if we were using inline styles before.
+        // Since we are switching to CSS classes, we should remove any inline display styles from rows if any exist (legacy).
+        // But wait, the new rows come from server without inline styles.
+        // The only thing is to make sure the tbody has the correct class. It should persist.
+        // However, we might need to uncheck checkboxes if a row disappeared.
+        filterVideos(currentFilterStatus);
+    });
+</script>
+{% endblock %}
+```

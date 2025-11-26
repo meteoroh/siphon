@@ -52,21 +52,8 @@ def performers():
         db.session.commit()
         
         # Return partial HTML for HTMX
-        return f'''
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">{name}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">{site} | {p_type}</h6>
-                    <p class="card-text">
-                        ID: {p_id}<br>
-                        Filter: Off
-                    </p>
-                    <a href="/performers/{p_id}" class="btn btn-sm btn-outline-primary">View Videos</a>
-                </div>
-            </div>
-        </div>
-        '''
+        # Return row HTML for HTMX
+        return render_template('components/performer_row.html', performer=performer)
 
     performers_query = Performer.query
     search_query = request.args.get('q')
@@ -98,14 +85,14 @@ def unignore_video(video_id):
     video = Video.query.get_or_404(video_id)
     video.status = 'new'
     db.session.commit()
-    return "" # Return empty to remove row from table via HTMX
+    return render_template('components/video_row.html', video=video)
 
 @main.route('/videos/<int:video_id>/ignore', methods=['POST'])
 def ignore_video(video_id):
     video = Video.query.get_or_404(video_id)
     video.status = 'ignored'
     db.session.commit()
-    return "" # Return empty to remove row from table via HTMX
+    return render_template('components/video_row.html', video=video)
 
 @main.route('/performers/<performer_id>/edit', methods=['POST'])
 def edit_performer(performer_id):
@@ -135,7 +122,7 @@ def download_batch():
     from app.downloader import download_video
     
     # We will return a main message + OOB swaps for each video button
-    response_content = f"<div class='alert alert-success'>Started {len(video_ids)} downloads.</div>"
+    response_content = ""
     
     # Monitor batch and trigger global auto-tag
     from app.tasks import monitor_batch_completion
@@ -161,7 +148,8 @@ def download_batch():
         
         pb_html = render_template('components/progress_bar.html', task_id=task_id, message="Queued", progress=0)
         response_content += f'<div hx-swap-oob="outerHTML:#btn-download-{vid}">{pb_html}</div>'
-        # Also remove the ignore button via OOB
+        # Also remove the ignore button via OOB - actually we should probably update the row status to downloading?
+        # For now, let's just remove the ignore button as requested before.
         response_content += f'<div hx-swap-oob="delete:#btn-ignore-{vid}"></div>'
 
     monitor_batch_completion(all_task_ids, batch_done_callback)
@@ -172,25 +160,31 @@ def download_batch():
 def ignore_batch():
     video_ids = request.form.getlist('video_ids')
     count = 0
+    response_content = ""
     for vid in video_ids:
         video = Video.query.get(vid)
         if video:
             video.status = 'ignored'
             count += 1
+            row_html = render_template('components/video_row.html', video=video, oob=True)
+            response_content += row_html
     db.session.commit()
-    return f"<div class='alert alert-info'>Ignored {count} videos. Refresh to see changes.</div>"
+    return response_content
 
 @main.route('/unignore/batch', methods=['POST'])
 def unignore_batch():
     video_ids = request.form.getlist('video_ids')
     count = 0
+    response_content = ""
     for vid in video_ids:
         video = Video.query.get(vid)
         if video:
             video.status = 'new'
             count += 1
+            row_html = render_template('components/video_row.html', video=video, oob=True)
+            response_content += row_html
     db.session.commit()
-    return f"<div class='alert alert-success'>Unignored {count} videos. Refresh to see changes.</div>"
+    return response_content
 
 @main.route('/download/<int:video_id>', methods=['POST'])
 def download_video_route(video_id):
@@ -221,7 +215,15 @@ def task_status(task_id):
             </div>
             """
         
-        # Default for downloads
+        # Check if it was a download task (result has 'video_id')
+        if task.get('result') and isinstance(task['result'], dict) and 'video_id' in task['result']:
+            video_id = task['result']['video_id']
+            video = Video.query.get(video_id)
+            if video:
+                # Return the updated row via OOB swap
+                return render_template('components/video_row.html', video=video, oob=True)
+        
+        # Default fallback
         return """
         <button class="btn btn-success btn-sm" disabled>
             Downloaded
