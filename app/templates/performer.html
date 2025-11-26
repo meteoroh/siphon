@@ -109,17 +109,25 @@
     <div class="card border-0 mb-4">
         <div class="card-header bg-white border-bottom border-light py-3">
             <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-light border" hx-post="/download/batch" hx-target="#batch-message"
-                    hx-include="#batch-form">
-                    <i class="bi bi-download me-1 d-none d-md-inline"></i> Download Selected
+                <button id="btn-batch-download" class="btn btn-sm btn-outline-primary" hx-post="/download/batch"
+                    hx-target="#batch-message" hx-include="#batch-form" disabled>
+                    <span class="spinner-border spinner-border-sm htmx-indicator" role="status"
+                        aria-hidden="true"></span>
+                    <i class="bi bi-download me-1 d-none d-md-inline"></i> <span class="btn-text">Download
+                        Selected</span>
                 </button>
-                <button class="btn btn-sm btn-light border" hx-post="/ignore/batch" hx-target="#batch-message"
-                    hx-include="#batch-form">
-                    <i class="bi bi-x-circle me-1 d-none d-md-inline"></i> Ignore Selected
+                <button id="btn-batch-ignore" class="btn btn-sm btn-outline-danger" hx-post="/ignore/batch"
+                    hx-target="#batch-message" hx-include="#batch-form" disabled>
+                    <span class="spinner-border spinner-border-sm htmx-indicator" role="status"
+                        aria-hidden="true"></span>
+                    <i class="bi bi-x-circle me-1 d-none d-md-inline"></i> <span class="btn-text">Ignore Selected</span>
                 </button>
-                <button class="btn btn-sm btn-light border" hx-post="/unignore/batch" hx-target="#batch-message"
-                    hx-include="#batch-form">
-                    <i class="bi bi-arrow-counterclockwise me-1 d-none d-md-inline"></i> Unignore Selected
+                <button id="btn-batch-unignore" class="btn btn-sm btn-outline-secondary" hx-post="/unignore/batch"
+                    hx-target="#batch-message" hx-include="#batch-form" disabled>
+                    <span class="spinner-border spinner-border-sm htmx-indicator" role="status"
+                        aria-hidden="true"></span>
+                    <i class="bi bi-arrow-counterclockwise me-1 d-none d-md-inline"></i> <span class="btn-text">Unignore
+                        Selected</span>
                 </button>
             </div>
         </div>
@@ -147,10 +155,11 @@
                         {% for video in videos %}
                         <tr data-status="{{ video.status }}">
                             <td class="ps-4"><input type="checkbox" class="form-check-input" name="video_ids"
-                                    value="{{ video.id }}"></td>
+                                    value="{{ video.id }}" {% if video.status=='downloaded' %}disabled{% endif %}></td>
                             <td>
                                 <a href="{{ video.url }}" target="_blank"
-                                    class="text-decoration-none text-dark text-wrap d-block" style="max-width: 500px;">
+                                    class="text-decoration-none text-dark text-truncate d-block"
+                                    style="max-width: 500px;">
                                     {{ video.title }}
                                 </a>
                             </td>
@@ -201,7 +210,7 @@
 
     <script>
         function filterVideos(status) {
-            const rows = document.querySelectorAll('tbody tr[data-status]');
+            const rows = document.querySelectorAll('tbody tr');
             rows.forEach(row => {
                 if (status === 'all' || row.dataset.status === status) {
                     row.style.display = '';
@@ -209,12 +218,64 @@
                     row.style.display = 'none';
                 }
             });
+            // Uncheck hidden checkboxes to avoid confusion
+            document.querySelectorAll('tbody tr[style*="display: none"] input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            updateBatchButtons();
         }
 
         function toggleAll(source) {
             // Only select visible checkboxes
             const checkboxes = document.querySelectorAll('tbody tr:not([style*="display: none"]) input[name="video_ids"]');
             checkboxes.forEach(cb => cb.checked = source.checked);
+            updateBatchButtons(); // Call updateBatchButtons after toggling all
         }
+
+        function updateBatchButtons() {
+            const checkedBoxes = document.querySelectorAll('input[name="video_ids"]:checked');
+
+            let newCount = 0;
+            let ignoredCount = 0;
+
+            checkedBoxes.forEach(cb => {
+                const row = cb.closest('tr');
+                const status = row.dataset.status;
+                if (status === 'new') newCount++;
+                if (status === 'ignored') ignoredCount++;
+            });
+
+            const btnDownload = document.getElementById('btn-batch-download');
+            const btnIgnore = document.getElementById('btn-batch-ignore');
+            const btnUnignore = document.getElementById('btn-batch-unignore');
+
+            if (btnDownload) {
+                btnDownload.disabled = newCount === 0;
+                const textSpan = btnDownload.querySelector('.btn-text');
+                if (textSpan) textSpan.textContent = newCount > 0 ? `Download Selected (${newCount})` : 'Download Selected';
+            }
+
+            if (btnIgnore) {
+                btnIgnore.disabled = newCount === 0;
+                const textSpan = btnIgnore.querySelector('.btn-text');
+                if (textSpan) textSpan.textContent = newCount > 0 ? `Ignore Selected (${newCount})` : 'Ignore Selected';
+            }
+
+            if (btnUnignore) {
+                btnUnignore.disabled = ignoredCount === 0;
+                const textSpan = btnUnignore.querySelector('.btn-text');
+                if (textSpan) textSpan.textContent = ignoredCount > 0 ? `Unignore Selected (${ignoredCount})` : 'Unignore Selected';
+            }
+        }
+
+        // Listen for checkbox changes
+        document.addEventListener('change', function (e) {
+            if (e.target.name === 'video_ids') {
+                updateBatchButtons();
+            }
+        });
+
+        // Initial call to set button states on page load
+        document.addEventListener('DOMContentLoaded', updateBatchButtons);
     </script>
     {% endblock %}
