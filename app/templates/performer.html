@@ -2,15 +2,12 @@
 
 {% block content %}
 <div class="mb-4">
-    <div class="d-flex justify-content-between align-items-start mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <a href="/" class="btn btn-link text-decoration-none ps-0 mb-2 text-muted">
-                <i class="bi bi-arrow-left me-1"></i> Back to Performers
-            </a>
             <h1 class="h2 mb-2 d-flex align-items-center">
                 {{ performer.name }}
-                <a href="{{ performer.profile_url }}" target="_blank"
-                    class="btn btn-sm btn-light rounded-circle ms-2 shadow-sm" title="Open Profile"
+                <a href="{{ performer.profile_url }}" target="_blank" class="btn btn-sm btn-light rounded-circle ms-2"
+                    title="Open Profile"
                     style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
                     <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.8rem;"></i>
                 </a>
@@ -26,77 +23,61 @@
         </div>
         <div class="d-flex gap-2">
             <div id="scan-container-{{ performer.id }}">
-                <button class="btn btn-primary shadow-sm" hx-post="/scan/{{ performer.id }}"
+                <button class="btn btn-primary" hx-post="/scan/{{ performer.id }}"
                     hx-target="#scan-container-{{ performer.id }}" hx-swap="innerHTML">
                     <i class="bi bi-arrow-repeat me-1"></i> Scan Now
                 </button>
             </div>
-            <button class="btn btn-white shadow-sm border" type="button" data-bs-toggle="collapse"
+            <button class="btn btn-white border" type="button" data-bs-toggle="collapse"
                 data-bs-target="#settingsCollapse">
                 <i class="bi bi-gear me-1"></i> Settings
             </button>
         </div>
     </div>
-</div>
 
-<div class="collapse mb-5" id="settingsCollapse">
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white border-0 pt-4 px-4">
-            <h5 class="mb-0">Performer Settings</h5>
-        </div>
-        <div class="card-body p-4">
-            <form hx-post="/performers/{{ performer.id }}/settings" hx-swap="innerHTML" hx-target="#settings-message">
-                <div class="mb-4 form-check">
-                    <input type="checkbox" class="form-check-input" id="scheduled_scan_enabled"
-                        name="scheduled_scan_enabled" {% if performer.scheduled_scan_enabled %}checked{% endif %}>
-                    <label class="form-check-label fw-medium" for="scheduled_scan_enabled">Enable Scheduled
-                        Scanning</label>
-                    <div class="form-text text-muted">If unchecked, this performer will be skipped during background
-                        scans.</div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-xs text-uppercase text-muted fw-bold">Blacklist Keywords</label>
-                        <input type="text" class="form-control" name="blacklist_keywords"
-                            value="{{ performer.blacklist_keywords or '' }}" placeholder="e.g. vr, compilation">
-                        <div class="form-text">Videos containing these words will be ignored automatically.</div>
+    <div class="collapse mb-5" id="settingsCollapse">
+        <div class="card border-0">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h5 class="mb-0">Performer Settings</h5>
+            </div>
+            <div class="card-body p-4">
+                <form hx-post="/performers/{{ performer.id }}/settings" hx-swap="innerHTML"
+                    hx-target="#settings-message">
+                    <div class="mb-4 form-check">
+                        <input type="checkbox" class="form-check-input" id="scheduled_scan_enabled"
+                            name="scheduled_scan_enabled" {% if performer.scheduled_scan_enabled %}checked{% endif %}>
+                        <label class="form-check-label fw-medium" for="scheduled_scan_enabled">Enable Scheduled
+                            Scanning</label>
+                        <div class="form-text text-muted">If unchecked, this performer will be skipped during background
+                            scans.</div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-xs text-uppercase text-muted fw-bold">Whitelist Keywords</label>
-                        <input type="text" class="form-control" name="whitelist_keywords"
-                            value="{{ performer.whitelist_keywords or '' }}" placeholder="e.g. 4k, exclusive">
-                        <div class="form-text">If set, ONLY videos containing these words will be downloaded.</div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-xs text-uppercase text-muted fw-bold">Blacklist
+                                Keywords</label>
+                            <input type="text" class="form-control" name="blacklist_keywords"
+                                value="{{ performer.blacklist_keywords or '' }}" placeholder="e.g. vr, compilation">
+                            <div class="form-text">Videos containing these words will be ignored automatically.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-xs text-uppercase text-muted fw-bold">Whitelist
+                                Keywords</label>
+                            <input type="text" class="form-control" name="whitelist_keywords"
+                                value="{{ performer.whitelist_keywords or '' }}" placeholder="e.g. 4k, exclusive">
+                            <div class="form-text">If set, ONLY videos containing these words will be downloaded.</div>
+                        </div>
                     </div>
-                </div>
-                <div class="mt-2">
-                    <button type="submit" class="btn btn-primary">Save Settings</button>
-                    <div id="settings-message" class="d-inline-block ms-3"></div>
-                </div>
-            </form>
+                    <div class="mt-2">
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                        <div id="settings-message" class="d-block mt-2"></div>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="h4 mb-0">Videos</h3>
-    <div class="d-flex gap-2">
-        <button class="btn btn-sm btn-success-subtle text-success-emphasis fw-bold border-0" hx-post="/download/batch"
-            hx-target="#batch-message" hx-include="#batch-form">
-            <i class="bi bi-download me-1"></i> Download Selected
-        </button>
-        <button class="btn btn-sm btn-danger-subtle text-danger-emphasis fw-bold border-0" hx-post="/ignore/batch"
-            hx-target="#batch-message" hx-include="#batch-form">
-            <i class="bi bi-x-circle me-1"></i> Ignore Selected
-        </button>
-        <button class="btn btn-sm btn-secondary-subtle text-secondary-emphasis fw-bold border-0"
-            hx-post="/unignore/batch" hx-target="#batch-message" hx-include="#batch-form">
-            <i class="bi bi-arrow-counterclockwise me-1"></i> Unignore Selected
-        </button>
-    </div>
-</div>
-
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white border-bottom border-light py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="h4 mb-0">Videos</h3>
         <div class="btn-group" role="group">
             <input type="radio" class="btn-check" name="status-filter" id="filter-all" value="all" checked
                 onclick="filterVideos('all')">
@@ -114,103 +95,123 @@
 
             <input type="radio" class="btn-check" name="status-filter" id="filter-ignored" value="ignored"
                 onclick="filterVideos('ignored')">
-            <label class="btn btn-outline-danger btn-sm" for="filter-ignored">Ignored ({{ videos|selectattr('status',
+            <label class="btn btn-outline-danger btn-sm" for="filter-ignored">Ignored ({{
+                videos|selectattr('status',
                 'equalto', 'ignored')|list|length }})</label>
         </div>
     </div>
 
-    <form id="batch-form">
-        <div id="batch-message"></div>
+    <div class="card border-0 mb-4">
+        <div class="card-header bg-white border-bottom border-light py-3">
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-light border" hx-post="/download/batch" hx-target="#batch-message"
+                    hx-include="#batch-form">
+                    <i class="bi bi-download me-1"></i> Download Selected
+                </button>
+                <button class="btn btn-sm btn-light border" hx-post="/ignore/batch" hx-target="#batch-message"
+                    hx-include="#batch-form">
+                    <i class="bi bi-x-circle me-1"></i> Ignore Selected
+                </button>
+                <button class="btn btn-sm btn-light border" hx-post="/unignore/batch" hx-target="#batch-message"
+                    hx-include="#batch-form">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Unignore Selected
+                </button>
+            </div>
+        </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light align-middle">
-                    <tr>
-                        <th class="ps-4 py-3" style="width: 40px;"><input type="checkbox" class="form-check-input"
-                                onclick="toggleAll(this)"></th>
-                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
-                            style="font-size: 0.75rem; letter-spacing: 0.5px;">Title</th>
-                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
-                            style="font-size: 0.75rem; letter-spacing: 0.5px;">Duration</th>
-                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
-                            style="font-size: 0.75rem; letter-spacing: 0.5px;">Status</th>
-                        <th class="text-end text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 pe-4"
-                            style="font-size: 0.75rem; letter-spacing: 0.5px;">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for video in videos %}
-                    <tr data-status="{{ video.status }}">
-                        <td class="ps-4"><input type="checkbox" class="form-check-input" name="video_ids"
-                                value="{{ video.id }}"></td>
-                        <td>
-                            <a href="{{ video.url }}" target="_blank"
-                                class="text-decoration-none text-dark text-wrap d-block" style="max-width: 500px;">
-                                {{ video.title }}
-                            </a>
-                        </td>
-                        <td class="text-secondary text-sm">{{ video.duration or 'N/A' }}</td>
-                        <td>
-                            <span class="badge rounded-pill border border-0 
+        <form id="batch-form">
+            <div id="batch-message"></div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light align-middle">
+                        <tr>
+                            <th class="ps-4 py-3" style="width: 40px;"><input type="checkbox" class="form-check-input"
+                                    onclick="toggleAll(this)"></th>
+                            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                                style="font-size: 0.75rem; letter-spacing: 0.5px;">Title</th>
+                            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                                style="font-size: 0.75rem; letter-spacing: 0.5px;">Duration</th>
+                            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                                style="font-size: 0.75rem; letter-spacing: 0.5px;">Status</th>
+                            <th class="text-end text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 pe-4"
+                                style="font-size: 0.75rem; letter-spacing: 0.5px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for video in videos %}
+                        <tr data-status="{{ video.status }}">
+                            <td class="ps-4"><input type="checkbox" class="form-check-input" name="video_ids"
+                                    value="{{ video.id }}"></td>
+                            <td>
+                                <a href="{{ video.url }}" target="_blank"
+                                    class="text-decoration-none text-dark text-wrap d-block" style="max-width: 500px;">
+                                    {{ video.title }}
+                                </a>
+                            </td>
+                            <td class="text-secondary text-sm">{{ video.duration or 'N/A' }}</td>
+                            <td>
+                                <span class="badge rounded-pill border border-0 
                                 {{ 'bg-primary-subtle text-primary-emphasis' if video.status == 'downloaded' 
                                 else 'bg-secondary-subtle text-secondary-emphasis' if video.status == 'ignored' 
                                 else 'bg-success-subtle text-success-emphasis' }}">
-                                {{ video.status|capitalize }}
-                            </span>
-                        </td>
-                        <td class="text-end pe-4">
-                            {% if video.status == 'new' %}
-                            <button id="btn-download-{{ video.id }}" class="btn btn-sm btn-success shadow-sm"
-                                hx-post="/download/{{ video.id }}" hx-swap="outerHTML">
-                                <i class="bi bi-download me-1"></i> Download
-                            </button>
-                            <button id="btn-ignore-{{ video.id }}" class="btn btn-sm btn-outline-danger border-0"
-                                hx-post="/videos/{{ video.id }}/ignore" hx-target="closest tr" hx-swap="delete"
-                                title="Ignore">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                            {% elif video.status == 'downloaded' %}
-                            <button class="btn btn-sm btn-light text-muted border" disabled>
-                                <i class="bi bi-check2 me-1"></i> Downloaded
-                            </button>
-                            {% elif video.status == 'ignored' %}
-                            <button class="btn btn-sm btn-outline-secondary border-0"
-                                hx-post="/videos/{{ video.id }}/unignore" hx-target="closest tr" hx-swap="delete">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i> Unignore
-                            </button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="text-center py-5 text-muted">
-                            <i class="bi bi-camera-video display-4 opacity-25 mb-3"></i>
-                            <p>No videos found yet. Try scanning.</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </form>
-</div>
+                                    {{ video.status|capitalize }}
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                {% if video.status == 'new' %}
+                                <button id="btn-download-{{ video.id }}" class="btn btn-sm btn-success"
+                                    hx-post="/download/{{ video.id }}" hx-swap="outerHTML" title="Download">
+                                    <i class="bi bi-download"></i>
+                                </button>
+                                <button id="btn-ignore-{{ video.id }}" class="btn btn-sm btn-light text-danger"
+                                    hx-post="/videos/{{ video.id }}/ignore" hx-target="closest tr" hx-swap="delete"
+                                    title="Ignore">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                                {% elif video.status == 'downloaded' %}
+                                <button class="btn btn-sm btn-light text-muted border" disabled>
+                                    <i class="bi bi-check2 me-1"></i> Downloaded
+                                </button>
+                                {% elif video.status == 'ignored' %}
+                                <button class="btn btn-sm btn-light text-secondary"
+                                    hx-post="/videos/{{ video.id }}/unignore" hx-target="closest tr" hx-swap="delete"
+                                    title="Unignore">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-camera-video display-4 opacity-25 mb-3"></i>
+                                <p>No videos found yet. Try scanning.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    </div>
 
-<script>
-    function filterVideos(status) {
-        const rows = document.querySelectorAll('tbody tr[data-status]');
-        rows.forEach(row => {
-            if (status === 'all' || row.dataset.status === status) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
-    }
+    <script>
+        function filterVideos(status) {
+            const rows = document.querySelectorAll('tbody tr[data-status]');
+            rows.forEach(row => {
+                if (status === 'all' || row.dataset.status === status) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
 
-    function toggleAll(source) {
-        // Only select visible checkboxes
-        const checkboxes = document.querySelectorAll('tbody tr:not([style*="display: none"]) input[name="video_ids"]');
-        checkboxes.forEach(cb => cb.checked = source.checked);
-    }
-</script>
-{% endblock %}
+        function toggleAll(source) {
+            // Only select visible checkboxes
+            const checkboxes = document.querySelectorAll('tbody tr:not([style*="display: none"]) input[name="video_ids"]');
+            checkboxes.forEach(cb => cb.checked = source.checked);
+        }
+    </script>
+    {% endblock %}
