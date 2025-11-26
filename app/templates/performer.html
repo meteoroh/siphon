@@ -120,28 +120,45 @@
         display: none !important;
     }
 
+    /* Responsive video title truncation */
+    .video-title {
+        min-width: 200px;
+        max-width: 300px;
+        /* Default for mobile */
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    @media (min-width: 768px) {
+        .video-title {
+            max-width: 500px;
+            /* Tablet and Desktop */
+        }
+    }
+
     /* view-all shows everything, so no rule needed */
 </style>
 
 <div class="card border-0 mb-4">
     <div class="card-header bg-white border-bottom border-light py-3">
         <div class="d-flex gap-2">
-            <button id="btn-batch-download" class="btn btn-sm btn-outline-primary" hx-post="/download/batch"
+            <button id="btn-batch-download" class="btn btn-sm btn-white border" hx-post="/download/batch"
                 hx-target="#batch-message" hx-include="#batch-form" disabled>
                 <span class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
-                <i class="bi bi-download me-1 d-none d-md-inline"></i> <span class="btn-text">Download
-                    Selected</span>
+                <i class="bi bi-download me-1 d-none d-md-inline"></i> <span class="btn-text">Download</span>
             </button>
-            <button id="btn-batch-ignore" class="btn btn-sm btn-outline-danger" hx-post="/ignore/batch"
+            <button id="btn-batch-ignore" class="btn btn-sm btn-white border" hx-post="/ignore/batch"
                 hx-target="#batch-message" hx-include="#batch-form" disabled>
                 <span class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
-                <i class="bi bi-x-circle me-1 d-none d-md-inline"></i> <span class="btn-text">Ignore Selected</span>
+                <i class="bi bi-x-circle me-1 d-none d-md-inline"></i> <span class="btn-text">Ignore</span>
             </button>
-            <button id="btn-batch-unignore" class="btn btn-sm btn-outline-secondary" hx-post="/unignore/batch"
+            <button id="btn-batch-unignore" class="btn btn-sm btn-white border" hx-post="/unignore/batch"
                 hx-target="#batch-message" hx-include="#batch-form" disabled>
                 <span class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
-                <i class="bi bi-arrow-counterclockwise me-1 d-none d-md-inline"></i> <span class="btn-text">Unignore
-                    Selected</span>
+                <i class="bi bi-arrow-counterclockwise me-1 d-none d-md-inline"></i> <span
+                    class="btn-text">Unignore</span>
             </button>
         </div>
     </div>
@@ -231,22 +248,24 @@
         const btnIgnore = document.getElementById('btn-batch-ignore');
         const btnUnignore = document.getElementById('btn-batch-unignore');
 
-        if (btnDownload) {
-            btnDownload.disabled = newCount === 0;
-            const textSpan = btnDownload.querySelector('.btn-text');
-            if (textSpan) textSpan.textContent = newCount > 0 ? `Download Selected (${newCount})` : 'Download Selected';
+        if (newCount > 0) {
+            btnDownload.disabled = false;
+            btnDownload.querySelector('.btn-text').textContent = `Download (${newCount})`;
+            btnIgnore.disabled = false;
+            btnIgnore.querySelector('.btn-text').textContent = `Ignore (${newCount})`;
+        } else {
+            btnDownload.disabled = true;
+            btnDownload.querySelector('.btn-text').textContent = 'Download';
+            btnIgnore.disabled = true;
+            btnIgnore.querySelector('.btn-text').textContent = 'Ignore';
         }
 
-        if (btnIgnore) {
-            btnIgnore.disabled = newCount === 0;
-            const textSpan = btnIgnore.querySelector('.btn-text');
-            if (textSpan) textSpan.textContent = newCount > 0 ? `Ignore Selected (${newCount})` : 'Ignore Selected';
-        }
-
-        if (btnUnignore) {
-            btnUnignore.disabled = ignoredCount === 0;
-            const textSpan = btnUnignore.querySelector('.btn-text');
-            if (textSpan) textSpan.textContent = ignoredCount > 0 ? `Unignore Selected (${ignoredCount})` : 'Unignore Selected';
+        if (ignoredCount > 0) {
+            btnUnignore.disabled = false;
+            btnUnignore.querySelector('.btn-text').textContent = `Unignore (${ignoredCount})`;
+        } else {
+            btnUnignore.disabled = true;
+            btnUnignore.querySelector('.btn-text').textContent = 'Unignore';
         }
     }
 
