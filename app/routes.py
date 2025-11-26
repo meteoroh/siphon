@@ -1,0 +1,414 @@
+from flask import Blueprint, render_template, request, jsonify
+from app.models import Performer, Video, db
+from app.scraper import scrape_performer
+from app.downloader import download_video
+
+main = Blueprint('main', __name__)
+
+def run_scan_task(task_id, performer_id):
+    from app import create_app
+    app = create_app(with_scheduler=False)
+    
+    with app.app_context():
+        from app.models import Performer
+        from app.services import scan_performer_service
+        from app.tasks import update_task_progress
+        
+        performer = Performer.query.get(performer_id)
+        if not performer:
+            update_task_progress(task_id, message="Performer not found", status="failed")
+            return
+            
+        result = scan_performer_service(performer, task_id)
+        
+
+        return result
+
+@main.route('/scan/<performer_id>', methods=['POST'])
+def scan_performer(performer_id):
+    from app.tasks import start_task
+    task_id = start_task(run_scan_task, performer_id)
+    return render_template('components/progress_bar.html', task_id=task_id, message="Initializing scan...", progress=0)
+
+@main.route('/')
+def index():
+    performers = Performer.query.all()
+    return render_template('index.html', performers=performers)
+
+@main.route('/performers', methods=['GET', 'POST'])
+def performers():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        p_id = request.form.get('id')
+        site = request.form.get('site')
+        p_type = request.form.get('type')
+        
+        if Performer.query.get(p_id):
+            return "Performer ID already exists", 400
+            
+        performer = Performer(id=p_id, name=name, site=site, type=p_type)
+        db.session.add(performer)
+        db.session.commit()
+        
+        # Return partial HTML for HTMX
+        return f'''
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{name}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{site} | {p_type}</h6>
+                    <p class="card-text">
+                        ID: {p_id}<br>
+                        Filter: Off
+                    </p>
+                    <a href="/performers/{p_id}" class="btn btn-sm btn-outline-primary">View Videos</a>
+                </div>
+            </div>
+        </div>
+        '''
+
+    performers_query = Performer.query
+    search_query = request.args.get('q')
+    if search_query:
+        performers_query = performers_query.filter(Performer.name.ilike(f'%{search_query}%'))
+    
+    performers = performers_query.all()
+    return render_template('index.html', performers=performers)
+
+@main.route('/performers/<performer_id>')
+def performer_details(performer_id):
+    performer = Performer.query.get_or_404(performer_id)
+    # Include all videos (new, downloaded, ignored)
+    videos = performer.videos.order_by(Video.created_at.desc()).all()
+    return render_template('performer.html', performer=performer, videos=videos)
+
+@main.route('/performers/<performer_id>/settings', methods=['POST'])
+def update_performer_settings(performer_id):
+    performer = Performer.query.get_or_404(performer_id)
+    performer.blacklist_keywords = request.form.get('blacklist_keywords')
+    performer.whitelist_keywords = request.form.get('whitelist_keywords')
+    db.session.commit()
+    return "<div class='alert alert-success'>Settings saved!</div>"
+
+
+@main.route('/videos/<int:video_id>/unignore', methods=['POST'])
+def unignore_video(video_id):
+    video = Video.query.get_or_404(video_id)
+    video.status = 'new'
+    db.session.commit()
+    return "" # Return empty to remove row from table via HTMX
+
+@main.route('/videos/<int:video_id>/ignore', methods=['POST'])
+def ignore_video(video_id):
+    video = Video.query.get_or_404(video_id)
+    video.status = 'ignored'
+    db.session.commit()
+    return "" # Return empty to remove row from table via HTMX
+
+@main.route('/performers/<performer_id>/edit', methods=['POST'])
+def edit_performer(performer_id):
+    performer = Performer.query.get_or_404(performer_id)
+    performer.name = request.form.get('name')
+    performer.site = request.form.get('site')
+    performer.type = request.form.get('type')
+    db.session.commit()
+    return "OK"
+
+@main.route('/performers/<performer_id>/delete', methods=['DELETE'])
+def delete_performer(performer_id):
+    performer = Performer.query.get_or_404(performer_id)
+    # Delete associated videos first (cascade should handle this but explicit is safer with SQLite sometimes)
+    Video.query.filter_by(performer_id=performer.id).delete()
+    db.session.delete(performer)
+    db.session.commit()
+    return ""
+
+@main.route('/download/batch', methods=['POST'])
+def download_batch():
+    video_ids = request.form.getlist('video_ids')
+    if not video_ids:
+        return "<div class='alert alert-warning'>No videos selected.</div>"
+        
+    from app.tasks import start_task
+    from app.downloader import download_video
+    
+    # We will return a main message + OOB swaps for each video button
+    response_content = f"<div class='alert alert-success'>Started {len(video_ids)} downloads.</div>"
+    
+    # Monitor batch and trigger global auto-tag
+    from app.tasks import monitor_batch_completion
+    
+    def batch_done_callback():
+        # Create app context for DB access if needed (though StashClient handles its own config now? 
+        # No, StashClient needs app context for Settings.query)
+        from app import create_app
+        from app.stash import StashClient
+        
+        app = create_app(with_scheduler=False)
+        with app.app_context():
+            stash = StashClient()
+            if stash.is_configured():
+                print("Batch done. Triggering Global Auto-Tag...")
+                stash.auto_tag()
+
+    # Collect all task IDs created in the loop
+    all_task_ids = []
+    for vid in video_ids:
+        task_id = start_task(download_video, vid)
+        all_task_ids.append(task_id)
+        
+        pb_html = render_template('components/progress_bar.html', task_id=task_id, message="Queued", progress=0)
+        response_content += f'<div hx-swap-oob="outerHTML:#btn-download-{vid}">{pb_html}</div>'
+        # Also remove the ignore button via OOB
+        response_content += f'<div hx-swap-oob="delete:#btn-ignore-{vid}"></div>'
+
+    monitor_batch_completion(all_task_ids, batch_done_callback)
+    
+    return response_content
+
+@main.route('/ignore/batch', methods=['POST'])
+def ignore_batch():
+    video_ids = request.form.getlist('video_ids')
+    count = 0
+    for vid in video_ids:
+        video = Video.query.get(vid)
+        if video:
+            video.status = 'ignored'
+            count += 1
+    db.session.commit()
+    return f"<div class='alert alert-info'>Ignored {count} videos. Refresh to see changes.</div>"
+
+@main.route('/unignore/batch', methods=['POST'])
+def unignore_batch():
+    video_ids = request.form.getlist('video_ids')
+    count = 0
+    for vid in video_ids:
+        video = Video.query.get(vid)
+        if video:
+            video.status = 'new'
+            count += 1
+    db.session.commit()
+    return f"<div class='alert alert-success'>Unignored {count} videos. Refresh to see changes.</div>"
+
+@main.route('/download/<int:video_id>', methods=['POST'])
+def download_video_route(video_id):
+    from app.tasks import start_task
+    from app.downloader import download_video
+    
+    task_id = start_task(download_video, video_id)
+    
+    # Return initial progress bar
+    return render_template('components/progress_bar.html', task_id=task_id, message="Starting download...", progress=0)
+
+@main.route('/task/status/<task_id>', methods=['GET'])
+def task_status(task_id):
+    from app.tasks import get_task_progress
+    task = get_task_progress(task_id)
+    
+    if not task:
+        return "Task not found", 404
+        
+    if task['status'] == 'completed':
+        # Check if it was a scan task (result has 'new_count')
+        if task.get('result') and isinstance(task['result'], dict) and 'new_count' in task['result']:
+             return f"""
+            <div class="alert alert-success py-1 px-2 small">
+                Scan complete. Found {task['result']['new_count']} new.
+                <script>setTimeout(() => location.reload(), 1000);</script>
+            </div>
+            """
+        
+        # Default for downloads
+        return """
+        <button class="btn btn-success btn-sm" disabled>
+            Downloaded
+        </button>
+        """
+    elif task['status'] == 'failed':
+        return f"""
+        <button class="btn btn-danger btn-sm" disabled title="{task['message']}">
+            Failed
+        </button>
+        <div class="text-danger small">{task['message']}</div>
+        """
+    else:
+        # Return updated progress bar
+        return render_template('components/progress_bar.html', 
+                             task_id=task_id, 
+                             message=task['message'], 
+                             progress=task['progress'])
+
+from app.models import Settings
+
+@main.route('/settings', methods=['GET'])
+def settings():
+    blacklist = Settings.query.filter_by(key='blacklist').first()
+    whitelist = Settings.query.filter_by(key='whitelist').first()
+    telegram_token = Settings.query.filter_by(key='telegram_token').first()
+    telegram_chat_id = Settings.query.filter_by(key='telegram_chat_id').first()
+    stash_url = Settings.query.filter_by(key='stash_url').first()
+    stash_api_key = Settings.query.filter_by(key='stash_api_key').first()
+    stash_path_mapping = Settings.query.filter_by(key='stash_path_mapping').first()
+    stash_check_existing = Settings.query.filter_by(key='stash_check_existing').first()
+    schedule_interval = Settings.query.filter_by(key='schedule_interval').first()
+    local_scan_path = Settings.query.filter_by(key='local_scan_path').first()
+    local_check_existing = Settings.query.filter_by(key='local_check_existing').first()
+    yt_dlp_auto_update = Settings.query.filter_by(key='yt_dlp_auto_update').first()
+    yt_dlp_last_updated = Settings.query.filter_by(key='yt_dlp_last_updated').first()
+    
+    # Get yt-dlp version
+    import subprocess
+    try:
+        ytdlp_version = subprocess.check_output(['uv', 'run', 'yt-dlp', '--version'], text=True).strip()
+    except Exception:
+        ytdlp_version = "Unknown"
+
+    return render_template('settings.html', 
+                           blacklist=blacklist.value if blacklist else '',
+                           whitelist=whitelist.value if whitelist else '',
+                           telegram_token=telegram_token.value if telegram_token else '',
+                           telegram_chat_id=telegram_chat_id.value if telegram_chat_id else '',
+                           stash_url=stash_url.value if stash_url else '',
+                           stash_api_key=stash_api_key.value if stash_api_key else '',
+                           stash_path_mapping=stash_path_mapping.value if stash_path_mapping else '',
+                           stash_check_existing=stash_check_existing.value if stash_check_existing else 'true',
+                           schedule_interval=schedule_interval.value if schedule_interval else '60',
+                           local_scan_path=local_scan_path.value if local_scan_path else '',
+                           local_check_existing=local_check_existing.value if local_check_existing else 'true',
+                           yt_dlp_auto_update=yt_dlp_auto_update.value if yt_dlp_auto_update else 'false',
+                           yt_dlp_version=ytdlp_version,
+                           yt_dlp_last_updated=yt_dlp_last_updated.value if yt_dlp_last_updated else 'Never')
+
+@main.route('/settings/<key>', methods=['POST'])
+def update_settings(key):
+    if key not in ['blacklist', 'whitelist', 'telegram', 'stash', 'schedule', 'localpath', 'autoupdate']:
+        return "Invalid setting", 400
+    
+    if key == 'telegram':
+        token = request.form.get('telegram_token')
+        chat_id = request.form.get('telegram_chat_id')
+        
+        s_token = Settings.query.filter_by(key='telegram_token').first() or Settings(key='telegram_token')
+        s_token.value = token
+        db.session.add(s_token)
+        
+        s_chat = Settings.query.filter_by(key='telegram_chat_id').first() or Settings(key='telegram_chat_id')
+        s_chat.value = chat_id
+        db.session.add(s_chat)
+    elif key == 'stash':
+        url = request.form.get('stash_url')
+        api_key = request.form.get('stash_api_key')
+        path_mapping = request.form.get('stash_path_mapping')
+        check_existing = 'true' if request.form.get('stash_check_existing') else 'false'
+        
+        s_url = Settings.query.filter_by(key='stash_url').first() or Settings(key='stash_url')
+        s_url.value = url
+        db.session.add(s_url)
+        
+        s_key = Settings.query.filter_by(key='stash_api_key').first() or Settings(key='stash_api_key')
+        s_key.value = api_key
+        db.session.add(s_key)
+
+        s_mapping = Settings.query.filter_by(key='stash_path_mapping').first() or Settings(key='stash_path_mapping')
+        s_mapping.value = path_mapping
+        db.session.add(s_mapping)
+
+        s_check = Settings.query.filter_by(key='stash_check_existing').first() or Settings(key='stash_check_existing')
+        s_check.value = check_existing
+        db.session.add(s_check)
+    elif key == 'schedule':
+        interval = request.form.get('schedule_interval')
+        s_interval = Settings.query.filter_by(key='schedule_interval').first() or Settings(key='schedule_interval')
+        s_interval.value = interval
+        db.session.add(s_interval)
+        
+        # Update Scheduler Job
+        from app.scheduler import scheduler, scheduled_scan
+        try:
+            if int(interval) > 0:
+                scheduler.add_job(id='scheduled_scan', func=scheduled_scan, trigger='interval', minutes=int(interval), replace_existing=True)
+            else:
+                scheduler.remove_job('scheduled_scan')
+        except Exception as e:
+            print(f"Error updating scheduler: {e}")
+            
+    elif key == 'localpath':
+        path = request.form.get('local_scan_path')
+        check_existing = 'true' if request.form.get('local_check_existing') else 'false'
+        
+        s_path = Settings.query.filter_by(key='local_scan_path').first() or Settings(key='local_scan_path')
+        s_path.value = path
+        db.session.add(s_path)
+
+        l_check = Settings.query.filter_by(key='local_check_existing').first() or Settings(key='local_check_existing')
+        l_check.value = check_existing
+        db.session.add(l_check)
+        
+    elif key == 'autoupdate':
+        enabled = 'true' if request.form.get('yt_dlp_auto_update') == 'on' else 'false'
+        s_auto = Settings.query.filter_by(key='yt_dlp_auto_update').first() or Settings(key='yt_dlp_auto_update')
+        s_auto.value = enabled
+        db.session.add(s_auto)
+        
+        # Update Scheduler for Auto Update
+        from app.scheduler import scheduler, auto_update_ytdlp
+        try:
+            if enabled == 'true':
+                # Run once a day
+                scheduler.add_job(id='auto_update_ytdlp', func=auto_update_ytdlp, trigger='interval', hours=24, replace_existing=True)
+            else:
+                scheduler.remove_job('auto_update_ytdlp')
+        except Exception as e:
+            print(f"Error updating scheduler for auto-update: {e}")
+
+    else:
+        value = request.form.get(key)
+        setting = Settings.query.filter_by(key=key).first() or Settings(key=key)
+        setting.value = value
+        db.session.add(setting)
+    
+    db.session.commit()
+    return "<div class='alert alert-success mt-3 mb-0'>Settings saved!</div>"
+
+@main.route('/settings/update-ytdlp', methods=['POST'])
+def update_ytdlp_route():
+    import subprocess
+    from datetime import datetime
+    try:
+        # Using uv pip install -U yt-dlp
+        result = subprocess.run(['uv', 'pip', 'install', '-U', 'yt-dlp'], capture_output=True, text=True)
+        if result.returncode == 0:
+            # Update last updated time
+            s_last = Settings.query.filter_by(key='yt_dlp_last_updated').first() or Settings(key='yt_dlp_last_updated')
+            s_last.value = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            db.session.add(s_last)
+            db.session.commit()
+            
+            # Get new version
+            new_version = subprocess.check_output(['uv', 'run', 'yt-dlp', '--version'], text=True).strip()
+            
+            return f"<div class='alert alert-success'>yt-dlp updated successfully to {new_version}!<br>Last Updated: {s_last.value}</div>"
+        else:
+            return f"<div class='alert alert-danger'>Update failed:<br><pre>{result.stderr}</pre></div>"
+    except Exception as e:
+        return f"<div class='alert alert-danger'>Error: {str(e)}</div>"
+
+from app.notifications import send_telegram_message
+
+@main.route('/settings/telegram/test', methods=['POST'])
+def test_telegram():
+    success, message = send_telegram_message("🔔 <b>Siphon Test Notification</b>\n\nThis is a test message from your Siphon instance.")
+    if success:
+        return f"<div class='alert alert-success mt-3 mb-0'>{message}</div>"
+    else:
+        return f"<div class='alert alert-danger mt-3 mb-0'>Error: {message}</div>"
+
+from app.stash import test_stash_connection
+
+@main.route('/settings/stash/test', methods=['POST'])
+def test_stash():
+    success, message = test_stash_connection()
+    if success:
+        return f"<div class='alert alert-success mt-3 mb-0'>{message}</div>"
+    else:
+        return f"<div class='alert alert-danger mt-3 mb-0'>Error: {message}</div>"

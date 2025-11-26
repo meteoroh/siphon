@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="/" class="btn btn-outline-secondary mb-3">&larr; Back</a>
+    <h1>
+        {{ performer.name }}
+        <a href="{{ performer.profile_url }}" target="_blank" class="btn btn-sm btn-outline-dark ms-2"
+            title="Open Profile">
+            <i class="bi bi-box-arrow-up-right"></i> ↗
+        </a>
+    </h1>
+    <p class="text-muted">{{ performer.site }} | {{ performer.type }}</p>
+    <div id="scan-container-{{ performer.id }}" class="d-inline-block">
+        <button class="btn btn-primary" hx-post="/scan/{{ performer.id }}"
+            hx-target="#scan-container-{{ performer.id }}" hx-swap="innerHTML">
+            Scan for New Videos
+        </button>
+    </div>
+    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse"
+        data-bs-target="#settingsCollapse">
+        Settings
+    </button>
+</div>
+
+<div class="collapse mb-4" id="settingsCollapse">
+    <div class="card card-body">
+        <form hx-post="/performers/{{ performer.id }}/settings" hx-swap="innerHTML" hx-target="#settings-message">
+            <div class="mb-3">
+                <label class="form-label">Blacklist Keywords (comma-separated)</label>
+                <input type="text" class="form-control" name="blacklist_keywords"
+                    value="{{ performer.blacklist_keywords or '' }}">
+                <div class="form-text">Videos containing these words will be ignored automatically.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Whitelist Keywords (comma-separated)</label>
+                <input type="text" class="form-control" name="whitelist_keywords"
+                    value="{{ performer.whitelist_keywords or '' }}">
+                <div class="form-text">If set, ONLY videos containing these words will be downloaded.</div>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+            <div id="settings-message" class="mt-2"></div>
+        </form>
+    </div>
+</div>
+
+<h3>Videos</h3>
+<div class="row mb-3 align-items-center">
+    <div class="col-md-6">
+        <div class="btn-group" role="group">
+            <input type="radio" class="btn-check" name="status-filter" id="filter-all" value="all" checked
+                onclick="filterVideos('all')">
+            <label class="btn btn-outline-primary" for="filter-all">All ({{ videos|length }})</label>
+
+            <input type="radio" class="btn-check" name="status-filter" id="filter-new" value="new"
+                onclick="filterVideos('new')">
+            <label class="btn btn-outline-success" for="filter-new">New ({{ videos|selectattr('status', 'equalto',
+                'new')|list|length }})</label>
+
+            <input type="radio" class="btn-check" name="status-filter" id="filter-downloaded" value="downloaded"
+                onclick="filterVideos('downloaded')">
+            <label class="btn btn-outline-secondary" for="filter-downloaded">Downloaded ({{ videos|selectattr('status',
+                'equalto', 'downloaded')|list|length }})</label>
+
+            <input type="radio" class="btn-check" name="status-filter" id="filter-ignored" value="ignored"
+                onclick="filterVideos('ignored')">
+            <label class="btn btn-outline-danger" for="filter-ignored">Ignored ({{ videos|selectattr('status',
+                'equalto', 'ignored')|list|length }})</label>
+        </div>
+    </div>
+    <div class="col-md-6 text-end">
+        <button class="btn btn-success" hx-post="/download/batch" hx-target="#batch-message"
+            hx-include="#batch-form">Download Selected</button>
+        <button class="btn btn-danger" hx-post="/ignore/batch" hx-target="#batch-message"
+            hx-include="#batch-form">Ignore Selected</button>
+        <button class="btn btn-outline-secondary" hx-post="/unignore/batch" hx-target="#batch-message"
+            hx-include="#batch-form">Unignore Selected</button>
+    </div>
+</div>
+
+<form id="batch-form">
+    <div id="batch-message"></div>
+
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" class="form-check-input" onclick="toggleAll(this)"></th>
+                    <th>Title</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for video in videos %}
+                <tr data-status="{{ video.status }}">
+                    <td><input type="checkbox" class="form-check-input" name="video_ids" value="{{ video.id }}"></td>
+                    <td><a href="{{ video.url }}" target="_blank" class="text-decoration-none">{{ video.title }}</a>
+                    </td>
+                    <td>{{ video.duration or 'N/A' }}</td>
+                    <td>
+                        <span
+                            class="badge bg-{{ 'success' if video.status == 'downloaded' else 'secondary' if video.status == 'ignored' else 'info' }}">
+                            {{ video.status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if video.status == 'new' %}
+                        <button id="btn-download-{{ video.id }}" class="btn btn-sm btn-success"
+                            hx-post="/download/{{ video.id }}" hx-swap="outerHTML">Download</button>
+                        <button id="btn-ignore-{{ video.id }}" class="btn btn-sm btn-outline-danger"
+                            hx-post="/videos/{{ video.id }}/ignore" hx-target="closest tr"
+                            hx-swap="delete">Ignore</button>
+                        {% elif video.status == 'downloaded' %}
+                        <button class="btn btn-sm btn-success" disabled>Downloaded</button>
+                        {% elif video.status == 'ignored' %}
+                        <button class="btn btn-sm btn-outline-secondary" hx-post="/videos/{{ video.id }}/unignore"
+                            hx-target="closest tr" hx-swap="delete">Unignore</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center">No videos found yet. Try scanning.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</form>
+
+<script>
+    function filterVideos(status) {
+        const rows = document.querySelectorAll('tbody tr[data-status]');
+        rows.forEach(row => {
+            if (status === 'all' || row.dataset.status === status) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function toggleAll(source) {
+        // Only select visible checkboxes
+        const checkboxes = document.querySelectorAll('tbody tr:not([style*="display: none"]) input[name="video_ids"]');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+    }
+</script>
+{% endblock %}

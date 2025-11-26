@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: siphon_web
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./siphon.db:/app/siphon.db
+      - ./downloads:/app/downloads
+      # - /path/to/your/local/videos:/app/videos # <--- Mount your video folder here
+    environment:
+      - SECRET_KEY=your-secret-key
+      - DATABASE_URL=sqlite:///siphon.db
+    # network_mode: "service:vpn" # Uncomment to use VPN container
+
+  # VPN Container Placeholder (e.g., gluetun)
+  # vpn:
+  #   image: qmcgaw/gluetun
+  #   container_name: siphon_vpn
+  #   cap_add:
+  #     - NET_ADMIN
+  #   environment:
+  #     - VPN_SERVICE_PROVIDER=custom
+  #     - OPENVPN_USER=user
+  #     - OPENVPN_PASSWORD=password
+  #   ports:
+  #     - "5000:5000" # Expose web port through VPN container

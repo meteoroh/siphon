@@ -1,0 +1,17 @@
+[project]
+name = "siphon"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "beautifulsoup4>=4.14.2",
+    "flask>=3.1.2",
+    "flask-apscheduler>=1.13.1",
+    "flask-migrate>=4.1.0",
+    "flask-sqlalchemy>=3.1.1",
+    "gunicorn>=23.0.0",
+    "python-dotenv>=1.2.1",
+    "requests>=2.32.5",
+    "yt-dlp[default]>=2025.11.24.232953.dev0",
+]

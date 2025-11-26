@@ -1,0 +1,55 @@
+from app import db
+from datetime import datetime
+
+class Performer(db.Model):
+    id = db.Column(db.String(64), primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    site = db.Column(db.String(64), nullable=False) # 'pornhub' or 'xhamster'
+    type = db.Column(db.String(64), nullable=False) # 'model', 'pornstar', 'creator'
+    filter_enabled = db.Column(db.Boolean, default=False)
+    keywords = db.Column(db.Text, nullable=True) # JSON string or comma-separated (Legacy/Global filter)
+    blacklist_keywords = db.Column(db.Text, nullable=True) # JSON string or comma-separated
+    whitelist_keywords = db.Column(db.Text, nullable=True) # JSON string or comma-separated
+    last_scan = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    videos = db.relationship('Video', backref='performer', lazy='dynamic')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'site': self.site,
+            'type': self.type,
+            'filter_enabled': self.filter_enabled,
+            'keywords': self.keywords
+        }
+
+    @property
+    def profile_url(self):
+        if self.site == 'pornhub':
+            if self.type == 'model':
+                return f"https://www.pornhub.com/model/{self.id}"
+            elif self.type == 'pornstar':
+                return f"https://www.pornhub.com/pornstar/{self.id}"
+        elif self.site == 'xhamster':
+            if self.type == 'creator':
+                return f"https://xhamster.com/creators/{self.id}"
+            elif self.type == 'pornstar':
+                return f"https://xhamster.com/pornstars/{self.id}"
+        return "#"
+
+class Video(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    performer_id = db.Column(db.String(64), db.ForeignKey('performer.id'), nullable=False)
+    title = db.Column(db.String(256), nullable=False)
+    url = db.Column(db.String(512), nullable=False)
+    viewkey = db.Column(db.String(64), nullable=False)
+    duration = db.Column(db.String(32), nullable=True) # e.g., "10:05"
+    status = db.Column(db.String(32), default='new') # 'new', 'downloaded', 'ignored', 'blacklisted'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Settings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(64), unique=True, nullable=False)
+    value = db.Column(db.Text, nullable=True)
