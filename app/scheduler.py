@@ -56,9 +56,19 @@ def init_scheduler(app):
     if not scheduler.running:
         scheduler.start()
     
-    # Add job if not exists (or update)
-    # For simplicity, we'll add a default job that runs every hour, but checks if it should run
-    try:
-        scheduler.add_job(id='scheduled_scan', func=scheduled_scan, trigger='interval', minutes=60, replace_existing=True)
-    except Exception:
-        pass # Job might already exist or scheduler issue
+    # Add job based on saved settings
+    with app.app_context():
+        try:
+            interval_setting = Settings.query.filter_by(key='schedule_interval').first()
+            interval = int(interval_setting.value) if interval_setting and interval_setting.value.isdigit() else 60
+            
+            if interval > 0:
+                scheduler.add_job(id='scheduled_scan', func=scheduled_scan, trigger='interval', minutes=interval, replace_existing=True)
+            else:
+                # Ensure job is removed if interval is 0 (in case of persistent job store)
+                try:
+                    scheduler.remove_job('scheduled_scan')
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"Error initializing scheduler job: {e}")

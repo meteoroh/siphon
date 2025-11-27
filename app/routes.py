@@ -39,6 +39,17 @@ def index():
     performers = Performer.query.all()
     return render_template('index.html', performers=performers)
 
+@main.route('/performers/search')
+def search_performers():
+    search_query = request.args.get('q')
+    performers_query = Performer.query
+    
+    if search_query:
+        performers_query = performers_query.filter(Performer.name.ilike(f'%{search_query}%'))
+    
+    performers = performers_query.all()
+    return render_template('components/performer_list.html', performers=performers)
+
 @main.route('/performers', methods=['GET', 'POST'])
 def performers():
     if request.method == 'POST':
