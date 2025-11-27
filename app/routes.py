@@ -127,35 +127,22 @@ def download_batch():
     # We will return a main message + OOB swaps for each video button
     response_content = ""
     
-    # Monitor batch and trigger global auto-tag
+    # Monitor batch completion (no global callback needed anymore)
     from app.tasks import monitor_batch_completion
     
-    def batch_done_callback():
-        # Create app context for DB access if needed (though StashClient handles its own config now? 
-        # No, StashClient needs app context for Settings.query)
-        from app import create_app
-        from app.stash import StashClient
-        
-        app = create_app(with_scheduler=False)
-        with app.app_context():
-            stash = StashClient()
-            if stash.is_configured():
-                print("Batch done. Triggering Global Auto-Tag...")
-                stash.auto_tag()
-
     # Collect all task IDs created in the loop
     all_task_ids = []
     for vid in video_ids:
-        task_id = start_task(download_video, vid, trigger_autotag=False)
+        # Enable per-video tagging now that it is targeted and safe
+        task_id = start_task(download_video, vid, trigger_autotag=True)
         all_task_ids.append(task_id)
         
         pb_html = render_template('components/progress_bar.html', task_id=task_id, message="Queued", progress=0)
         response_content += f'<div hx-swap-oob="outerHTML:#btn-download-{vid}">{pb_html}</div>'
-        # Also remove the ignore button via OOB - actually we should probably update the row status to downloading?
-        # For now, let's just remove the ignore button as requested before.
+        # Also remove the ignore button via OOB
         response_content += f'<div hx-swap-oob="delete:#btn-ignore-{vid}"></div>'
 
-    monitor_batch_completion(all_task_ids, batch_done_callback)
+    monitor_batch_completion(all_task_ids, None)
     
     return response_content
 

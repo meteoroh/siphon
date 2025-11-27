@@ -126,9 +126,9 @@ def download_video(task_id, video_id, trigger_autotag=True):
                     basename = os.path.basename(filename)
                     scene_id = stash.find_scene_by_path(basename)
                             
-                    # 3. Update Metadata
+                    # 3. Prepare Metadata & Scrape
                     if scene_id:
-                        # Format date from YYYYMMDD to YYYY-MM-DD
+                        # Basic Metadata from yt-dlp/local DB
                         upload_date = info.get('upload_date')
                         formatted_date = None
                         if upload_date and len(upload_date) == 8:
@@ -151,18 +151,40 @@ def download_video(task_id, video_id, trigger_autotag=True):
                             'performer_ids': performer_ids
                         }
                         
+                        # Scrape Metadata (if enabled)
+                        if trigger_autotag:
+                            logger.info(f"Scraping scene {scene_id} with builtin_autotag...")
+                            scraped_data = stash.scrape_scene(scene_id)
+                            
+                            if scraped_data:
+                                logger.info(f"Scrape successful. Merging data...")
+                                
+                                # Tags
+                                if scraped_data.get('tags'):
+                                    video_data['tag_ids'] = [t['stored_id'] for t in scraped_data['tags'] if t.get('stored_id')]
+                                    
+                                # Studio
+                                if scraped_data.get('studio') and scraped_data['studio'].get('stored_id'):
+                                    video_data['studio_id'] = scraped_data['studio']['stored_id']
+                                    
+                                # Performers (Merge)
+                                performers_list = scraped_data.get('performers') or []
+                                scraped_performer_ids = [p['stored_id'] for p in performers_list if p.get('stored_id')]
+                                if scraped_performer_ids:
+                                    for pid in scraped_performer_ids:
+                                        if pid not in video_data['performer_ids']:
+                                            video_data['performer_ids'].append(pid)
+                            else:
+                                logger.warning(f"No scrape results found for scene {scene_id}")
+                        else:
+                            logger.info("Skipping AutoTag (batch mode)")
+
+                        # 4. Single Update
                         stash.update_scene(scene_id, video_data)
                         logger.info(f"Updated Stash scene {scene_id} for {basename}")
                         
                     else:
                         logger.warning(f"Stash scene not found for {basename} after scan.")
-                    
-                    # 4. Auto Tag
-                    if trigger_autotag:
-                        logger.info(f"Triggering Global AutoTag (was {filename})")
-                        stash.auto_tag()
-                    else:
-                        logger.info("Skipping AutoTag (batch mode)")
                         
             except Exception as e:
                 logger.error(f"Stash integration error: {e}")

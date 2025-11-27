@@ -64,11 +64,11 @@ def monitor_batch_completion(task_ids, callback):
                     break
             
             if all_done:
-                print("Batch completed. Executing callback...")
-                try:
-                    callback()
-                except Exception as e:
-                    print(f"Error in batch callback: {e}")
+                if callback:
+                    try:
+                        callback()
+                    except Exception as e:
+                        print(f"Error in batch callback: {e}")
                 break
             
             time.sleep(2)

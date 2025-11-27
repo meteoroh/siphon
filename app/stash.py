@@ -245,6 +245,48 @@ class StashClient:
                 return performers[0]['id']
         return None
 
+    def scrape_scene(self, scene_id):
+        """Scrapes a scene using builtin_autotag."""
+        if not self.url or not scene_id:
+            return None
+            
+        query = """
+        query ScrapeSingleScene($source: ScraperSourceInput!, $input: ScrapeSingleSceneInput!) {
+          scrapeSingleScene(source: $source, input: $input) {
+            title
+            tags {
+              stored_id
+              name
+            }
+            performers {
+              stored_id
+              name
+            }
+            studio {
+              stored_id
+              name
+            }
+          }
+        }
+        """
+        
+        variables = {
+            'source': {
+                'scraper_id': 'builtin_autotag'
+            },
+            'input': {
+                'scene_id': scene_id
+            }
+        }
+        
+        data = self._post(query, variables)
+        if data and 'data' in data and 'scrapeSingleScene' in data['data']:
+            # scrapeSingleScene returns a LIST of results
+            results = data['data']['scrapeSingleScene']
+            if results:
+                return results[0]
+        return None
+
     def update_scene(self, scene_id, video_data):
         """Updates scene metadata."""
         if not self.url or not scene_id:
@@ -267,6 +309,8 @@ class StashClient:
         if video_data.get('description'): scene_input['details'] = video_data['description']
         if video_data.get('date'): scene_input['date'] = video_data['date']
         if video_data.get('performer_ids'): scene_input['performer_ids'] = video_data['performer_ids']
+        if video_data.get('tag_ids'): scene_input['tag_ids'] = video_data['tag_ids']
+        if video_data.get('studio_id'): scene_input['studio_id'] = video_data['studio_id']
         
         data = self._post(query, {'input': scene_input})
         return data is not None
