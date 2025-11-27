@@ -7,7 +7,7 @@
         <div>
             <h1 class="h2 mb-2 d-flex align-items-center">
                 {{ performer.name }}
-                <a href="{{ performer.profile_url }}" target="_blank" class="btn btn-sm btn-light rounded-circle ms-2"
+                <a href="{{ performer.profile_url }}" target="_blank" class="btn btn-sm border rounded-circle ms-2"
                     title="Open Profile"
                     style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
                     <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.8rem;"></i>
@@ -29,8 +29,7 @@
                     <i class="bi bi-arrow-repeat me-1 d-none d-md-inline"></i> Scan Now
                 </button>
             </div>
-            <button class="btn btn-white border" type="button" data-bs-toggle="collapse"
-                data-bs-target="#settingsCollapse">
+            <button class="btn border" type="button" data-bs-toggle="collapse" data-bs-target="#settingsCollapse">
                 <i class="bi bi-gear me-1 d-none d-md-inline"></i> Settings
             </button>
         </div>
@@ -38,7 +37,7 @@
 
     <div class="collapse mb-5" id="settingsCollapse">
         <div class="card border-0">
-            <div class="card-header bg-white border-0 pt-4 px-4">
+            <div class="card-header bg-transparent border-bottom border-light-subtle py-3">
                 <h5 class="mb-0">Performer Settings</h5>
             </div>
             <div class="card-body p-4">
@@ -143,19 +142,19 @@
 </style>
 
 <div class="card border-0 mb-4">
-    <div class="card-header bg-white border-bottom border-light py-3">
+    <div class="card-header bg-transparent border-bottom border-light-subtle py-3">
         <div class="d-flex gap-2">
-            <button id="btn-batch-download" class="btn btn-sm btn-white border" hx-post="/download/batch"
+            <button id="btn-batch-download" class="btn btn-sm border" hx-post="/download/batch"
                 hx-target="#batch-message" hx-include="#batch-form" disabled>
                 <span class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
                 <i class="bi bi-download me-1 d-none d-md-inline"></i> <span class="btn-text">Download</span>
             </button>
-            <button id="btn-batch-ignore" class="btn btn-sm btn-white border" hx-post="/ignore/batch"
-                hx-target="#batch-message" hx-include="#batch-form" disabled>
+            <button id="btn-batch-ignore" class="btn btn-sm border" hx-post="/ignore/batch" hx-target="#batch-message"
+                hx-include="#batch-form" disabled>
                 <span class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
                 <i class="bi bi-x-circle me-1 d-none d-md-inline"></i> <span class="btn-text">Ignore</span>
             </button>
-            <button id="btn-batch-unignore" class="btn btn-sm btn-white border" hx-post="/unignore/batch"
+            <button id="btn-batch-unignore" class="btn btn-sm border" hx-post="/unignore/batch"
                 hx-target="#batch-message" hx-include="#batch-form" disabled>
                 <span class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
                 <i class="bi bi-arrow-counterclockwise me-1 d-none d-md-inline"></i> <span
@@ -169,7 +168,7 @@
 
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light align-middle">
+                <thead class="bg-body-tertiary align-middle">
                     <tr>
                         <th class="ps-4 py-3" style="width: 40px;"><input type="checkbox" class="form-check-input"
                                 onclick="toggleAll(this)"></th>

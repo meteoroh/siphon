@@ -2,7 +2,7 @@
     <td class="ps-4"><input type="checkbox" class="form-check-input" name="video_ids" value="{{ video.id }}" {% if
             video.status=='downloaded' %}disabled{% endif %}></td>
     <td>
-        <a href="{{ video.url }}" target="_blank" class="text-decoration-none text-dark video-title">
+        <a href="{{ video.url }}" target="_blank" class="text-decoration-none text-body video-title">
             {{ video.title }}
         </a>
     </td>

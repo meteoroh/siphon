@@ -37,9 +37,37 @@
             <div class="tab-pane fade show active" id="list-general" role="tabpanel"
                 aria-labelledby="list-general-list">
 
+                <!-- Appearance -->
+                <div class="card border-0 mb-4">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
+                        <h5 class="mb-0 fw-bold">Appearance</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="btn-group w-100" role="group" aria-label="Theme selection">
+                            <input type="radio" class="btn-check" name="theme" id="theme-light" value="light"
+                                autocomplete="off">
+                            <label class="btn btn-outline-secondary" for="theme-light">
+                                <i class="bi bi-sun me-2"></i>Light
+                            </label>
+
+                            <input type="radio" class="btn-check" name="theme" id="theme-dark" value="dark"
+                                autocomplete="off">
+                            <label class="btn btn-outline-secondary" for="theme-dark">
+                                <i class="bi bi-moon-stars me-2"></i>Dark
+                            </label>
+
+                            <input type="radio" class="btn-check" name="theme" id="theme-auto" value="auto"
+                                autocomplete="off">
+                            <label class="btn btn-outline-secondary" for="theme-auto">
+                                <i class="bi bi-circle-half me-2"></i>Auto
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Scanning Schedule -->
                 <div class="card border-0 mb-4">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
                         <h5 class="mb-0 fw-bold">Scanning Schedule</h5>
                     </div>
                     <div class="card-body p-4">
@@ -65,7 +93,7 @@
 
                 <!-- Telegram -->
                 <div class="card border-0 mb-4">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
                         <h5 class="mb-0 fw-bold">Telegram Notifications</h5>
                     </div>
                     <div class="card-body p-4">
@@ -92,14 +120,14 @@
 
                 <!-- System (yt-dlp) -->
                 <div class="card border-0 mb-4">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
                         <h5 class="mb-0 fw-bold">System</h5>
                     </div>
                     <div class="card-body p-4">
                         <div class="mb-4">
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <h6 class="fw-bold mb-0">yt-dlp</h6>
-                                <span class="badge bg-light text-dark border">{{ yt_dlp_version }}</span>
+                                <span class="badge text-bg-light border">{{ yt_dlp_version }}</span>
                             </div>
                             <div class="text-muted small">Updated {{ yt_dlp_last_updated }}</div>
                         </div>
@@ -128,7 +156,7 @@
             <!-- Filters -->
             <div class="tab-pane fade" id="list-filters" role="tabpanel" aria-labelledby="list-filters-list">
                 <div class="card border-0 mb-4">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
                         <h5 class="mb-0 fw-bold">Global Blacklist</h5>
                     </div>
                     <div class="card-body p-4">
@@ -147,7 +175,7 @@
                 </div>
 
                 <div class="card border-0 mb-4">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
                         <h5 class="mb-0 fw-bold">Global Whitelist</h5>
                     </div>
                     <div class="card-body p-4">
@@ -171,7 +199,7 @@
 
                 <!-- Local Storage -->
                 <div class="card border-0 mb-4">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
                         <h5 class="mb-0 fw-bold">Local Storage</h5>
                     </div>
                     <div class="card-body p-4">
@@ -198,7 +226,7 @@
 
                 <!-- Stash -->
                 <div class="card border-0 mb-4">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
                         <h5 class="mb-0 fw-bold">Stash Integration</h5>
                     </div>
                     <div class="card-body p-4">
@@ -240,7 +268,7 @@
 
                 <!-- Export/Import -->
                 <div class="card border-0 mb-4">
-                    <div class="card-header bg-white border-0 pt-4 px-4">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
                         <h5 class="mb-0 fw-bold">Backup & Restore</h5>
                     </div>
                     <div class="card-body p-4">
@@ -276,7 +304,7 @@
             <div class="tab-pane fade" id="list-logs" role="tabpanel" aria-labelledby="list-logs-list">
                 <div class="card border-0 mb-4">
                     <div
-                        class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                        class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 fw-bold">Application Logs</h5>
                         <div class="d-flex gap-2">
                             <button class="btn btn-sm btn-outline-secondary" hx-get="/settings/logs"
@@ -290,7 +318,8 @@
                         </div>
                     </div>
                     <div class="card-body p-4">
-                        <div class="bg-light p-3 rounded font-monospace small" style="height: 500px; overflow-y: auto;">
+                        <div class="bg-body-tertiary log-container p-3 rounded font-monospace small"
+                            style="height: 500px; overflow-y: auto;">
                             <pre id="log-viewer" class="m-0" hx-get="/settings/logs"
                                 hx-trigger="load">Loading logs...</pre>
                         </div>
@@ -301,4 +330,30 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const themeRadios = document.querySelectorAll('input[name="theme"]');
+        const savedTheme = localStorage.getItem('theme') || 'auto';
+
+        // Set initial state
+        const initialRadio = document.getElementById(`theme-${savedTheme}`);
+        if (initialRadio) initialRadio.checked = true;
+
+        // Handle changes
+        themeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    const newTheme = e.target.value;
+                    localStorage.setItem('theme', newTheme);
+
+                    // Dispatch custom event for base.html to pick up
+                    window.dispatchEvent(new CustomEvent('themeChanged', {
+                        detail: { theme: newTheme }
+                    }));
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="htmlElement" data-bs-theme="light">
 
 <head>
     <meta charset="UTF-8">
@@ -17,36 +17,27 @@
         }
 
         body {
-            background-color: #f8f9fa;
             font-family: var(--bs-font-sans-serif);
-            color: #344767;
         }
 
         .card {
             border: none;
             box-shadow: none;
             border-radius: 1rem;
+            /* Bootstrap handles bg and color in dark mode automatically */
         }
 
         .navbar {
             box-shadow: none;
-            background-color: #fff !important;
         }
 
         .navbar-brand {
-            color: #344767 !important;
             font-weight: 700;
             letter-spacing: -0.5px;
         }
 
         .nav-link {
-            color: #67748e !important;
             font-weight: 500;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            color: #344767 !important;
         }
 
         h1,
@@ -55,7 +46,6 @@
         h4,
         h5,
         h6 {
-            color: #344767;
             font-weight: 600;
             letter-spacing: -0.5px;
         }
@@ -74,17 +64,65 @@
         .htmx-request.htmx-indicator {
             display: inline-block;
         }
+
+        /* True Black Background Only */
+        [data-bs-theme="dark"] body {
+            background-color: #000000 !important;
+        }
+
+        /* Global Dark Mode Variable Overrides */
+        [data-bs-theme="dark"] {
+            --bs-body-bg: #111111;
+            --bs-body-bg-rgb: 17, 17, 17;
+            --bs-tertiary-bg: #111111;
+            --bs-secondary-bg: #111111;
+            --bs-list-group-bg: #111111;
+            --bs-card-bg: #111111;
+            --bs-border-color: #222;
+            --bs-border-color-translucent: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Ensure borders are subtle and match */
+        [data-bs-theme="dark"] .card,
+        [data-bs-theme="dark"] .navbar,
+        [data-bs-theme="dark"] .list-group-item,
+        [data-bs-theme="dark"] .form-control,
+        [data-bs-theme="dark"] .input-group-text {
+            border-color: #222;
+        }
+
+        /* Log Viewer True Black Override */
+        [data-bs-theme="dark"] .log-container {
+            background-color: #000000 !important;
+            border: 1px solid #333;
+        }
     </style>
+    <script>
+        // Initialize theme immediately
+        (function () {
+            const savedTheme = localStorage.getItem('theme') || 'auto';
+            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+            let theme = savedTheme;
+            if (savedTheme === 'auto') {
+                theme = systemTheme;
+            }
+
+            document.documentElement.setAttribute('data-bs-theme', theme);
+        })();
+    </script>
 </head>
 
-<body>
-    <nav class="navbar navbar-expand navbar-light bg-white mb-4">
+<body class="bg-body-tertiary">
+    <nav class="navbar navbar-expand navbar-light bg-body mb-4">
         <div class="container" style="max-width: 1000px;">
             <a class="navbar-brand" href="/">Siphon</a>
-            <ul class="navbar-nav ms-auto flex-row gap-3">
-                <li class="nav-item"><a class="nav-link" href="/">Performers</a></li>
-                <li class="nav-item"><a class="nav-link" href="/settings">Settings</a></li>
-            </ul>
+            <div class="d-flex align-items-center gap-3 ms-auto">
+                <ul class="navbar-nav flex-row gap-3">
+                    <li class="nav-item"><a class="nav-link" href="/">Performers</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/settings">Settings</a></li>
+                </ul>
+            </div>
         </div>
     </nav>
 
@@ -93,6 +131,37 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const html = document.documentElement;
+
+            function applyTheme(theme) {
+                if (theme === 'auto') {
+                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                html.setAttribute('data-bs-theme', theme);
+            }
+
+            // Listen for changes from other tabs/pages (like Settings)
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'theme') {
+                    applyTheme(e.newValue);
+                }
+            });
+
+            // Listen for custom event from settings page
+            window.addEventListener('themeChanged', (e) => {
+                applyTheme(e.detail.theme);
+            });
+
+            // Listen for system preference changes if in auto mode
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                if (localStorage.getItem('theme') === 'auto') {
+                    applyTheme('auto');
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
