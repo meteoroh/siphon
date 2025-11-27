@@ -417,8 +417,9 @@ def update_ytdlp_route():
     import subprocess
     from datetime import datetime
     try:
-        # Using uv pip install -U yt-dlp
-        result = subprocess.run(['uv', 'pip', 'install', '-U', 'yt-dlp'], capture_output=True, text=True)
+        # Update and sync in one go
+        result = subprocess.run(['uv', 'sync', '--upgrade-package', 'yt-dlp'], capture_output=True, text=True)
+        
         if result.returncode == 0:
             # Update last updated time
             s_last = Settings.query.filter_by(key='yt_dlp_last_updated').first() or Settings(key='yt_dlp_last_updated')

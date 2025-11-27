@@ -36,7 +36,8 @@ def auto_update_ytdlp():
     with app.app_context():
         try:
             print("Starting auto-update of yt-dlp...")
-            subprocess.run(['uv', 'pip', 'install', '-U', 'yt-dlp'], check=True)
+            # Update and sync in one go
+            subprocess.run(['uv', 'sync', '--upgrade-package', 'yt-dlp'], check=True)
             
             s_last = Settings.query.filter_by(key='yt_dlp_last_updated').first() or Settings(key='yt_dlp_last_updated')
             s_last.value = datetime.now().strftime('%Y-%m-%d %H:%M:%S')

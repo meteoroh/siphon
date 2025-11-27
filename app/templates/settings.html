@@ -277,8 +277,8 @@
                             <p class="text-muted small mb-3">Download a JSON backup of all performers, keywords, and
                                 ignored
                                 videos.</p>
-                            <a href="/settings/export" class="btn btn-outline-primary">
-                                <i class="bi bi-download me-1"></i> Export Performers
+                            <a href="/settings/export" class="btn btn-primary">
+                                Export Performers
                             </a>
                         </div>
                         <hr class="text-muted opacity-25">
@@ -287,12 +287,12 @@
                             <p class="text-muted small mb-3">Upload a JSON backup to merge with existing data.</p>
                             <form hx-post="/settings/import" hx-encoding="multipart/form-data"
                                 hx-target="#import-result">
-                                <div class="input-group mb-2">
+                                <div class="mb-3">
                                     <input type="file" class="form-control" name="file" accept=".json" required>
-                                    <button class="btn btn-warning" type="submit">
-                                        <i class="bi bi-upload me-1"></i> Import
-                                    </button>
                                 </div>
+                                <button class="btn btn-primary" type="submit">
+                                    Import Performers
+                                </button>
                                 <div id="import-result"></div>
                             </form>
                         </div>
