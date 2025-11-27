@@ -3,7 +3,10 @@ from datetime import datetime
 from app.models import Performer, Video, db
 from app.scraper import scrape_performer
 from app.downloader import download_video
+from app.downloader import download_video
+import os
 
+main = Blueprint('main', __name__)
 main = Blueprint('main', __name__)
 
 def run_scan_task(task_id, performer_id):
@@ -143,7 +146,7 @@ def download_batch():
     # Collect all task IDs created in the loop
     all_task_ids = []
     for vid in video_ids:
-        task_id = start_task(download_video, vid)
+        task_id = start_task(download_video, vid, trigger_autotag=False)
         all_task_ids.append(task_id)
         
         pb_html = render_template('components/progress_bar.html', task_id=task_id, message="Queued", progress=0)
@@ -294,6 +297,31 @@ def settings():
                            yt_dlp_version=ytdlp_version,
                            yt_dlp_last_updated=yt_dlp_last_updated.value if yt_dlp_last_updated else 'Never',
                            next_scan_time=next_scan_time)
+
+@main.route('/settings/logs')
+def get_logs():
+    log_file = 'logs/siphon.log'
+    if not os.path.exists(log_file):
+        return "No logs found."
+    
+    try:
+        with open(log_file, 'r') as f:
+            # Read last 1000 lines roughly
+            # For simplicity, read all and take last N lines
+            lines = f.readlines()
+            last_lines = lines[-200:] # Last 200 lines
+            return "".join(last_lines)
+    except Exception as e:
+        return f"Error reading logs: {e}"
+
+@main.route('/settings/logs/clear', methods=['POST'])
+def clear_logs():
+    log_file = 'logs/siphon.log'
+    try:
+        open(log_file, 'w').close()
+        return "Logs cleared."
+    except Exception as e:
+        return f"Error clearing logs: {e}"
 
 @main.route('/settings/<key>', methods=['POST'])
 def update_settings(key):

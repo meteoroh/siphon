@@ -1,6 +1,9 @@
 import requests
 from app.models import Settings
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 class StashClient:
     def _get_config(self):
@@ -31,7 +34,7 @@ class StashClient:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"Error querying Stash: {e}")
+            logger.error(f"Error querying Stash: {e}")
             return None
 
     def test_connection(self):
@@ -98,7 +101,7 @@ class StashClient:
             
             if path.startswith(local_prefix):
                 path = path.replace(local_prefix, remote_prefix, 1)
-                print(f"Mapped path to Stash format: {path}")
+                logger.info(f"Mapped path to Stash format: {path}")
             
         query = """
         mutation MetadataScan($paths: [String!]) {
@@ -131,7 +134,7 @@ class StashClient:
                 
                 if path.startswith(local_prefix):
                     path = path.replace(local_prefix, remote_prefix, 1)
-                    print(f"Mapped path for AutoTag: {path}")
+                    logger.info(f"Mapped path for AutoTag: {path}")
             variables['paths'] = [path]
         else:
             variables['paths'] = None
@@ -182,7 +185,7 @@ class StashClient:
         viewkey_match = re.search(r'\[([a-zA-Z0-9]+)\]', path)
         if viewkey_match:
             search_term = viewkey_match.group(1)
-            print(f"Searching Stash by viewkey: {search_term}")
+            logger.debug(f"Searching Stash by viewkey: {search_term}")
         
         query = """
         query FindSceneIdByPath($path: String!) {

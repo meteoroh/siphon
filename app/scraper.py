@@ -3,6 +3,9 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, parse_qs
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 # --- yt-dlp Options (Used for PornHub) ---
 YDL_OPTS = {
@@ -25,7 +28,7 @@ def scrape_xhamster_videos(performer_id, performer_type, task_id=None):
     elif performer_type == 'pornstar':
         base_url = f"https://xhamster.com/pornstars/{performer_id}/exclusive"
     else:
-        print(f"⚠️ Unknown xhamster performer type: {performer_type}")
+        logger.warning(f"Unknown xhamster performer type: {performer_type}")
         return []
 
     all_found_videos = []
@@ -40,7 +43,7 @@ def scrape_xhamster_videos(performer_id, performer_type, task_id=None):
         else:
             current_url = f"{base_url}/{page_number}"
 
-        print(f"Scraping xhamster page: {current_url}")
+        logger.info(f"Scraping xhamster page: {current_url}")
         
         try:
             response = requests.get(current_url, headers=HEADERS, timeout=15)
@@ -78,7 +81,7 @@ def scrape_xhamster_videos(performer_id, performer_type, task_id=None):
             time.sleep(1)
 
         except requests.exceptions.RequestException as e:
-            print(f"An error occurred during request: {e}")
+            logger.error(f"An error occurred during request: {e}")
             break
             
     return all_found_videos
@@ -92,7 +95,7 @@ def scrape_pornhub_videos(performer_id, performer_type, task_id=None):
     elif performer_type == 'pornstar':
         base_url = f"https://www.pornhub.com/pornstar/{performer_id}/videos/upload"
     else:
-        print(f"⚠️ Unknown pornhub performer type: {performer_type}")
+        logger.warning(f"Unknown pornhub performer type: {performer_type}")
         return []
 
     videos_data = []
@@ -103,7 +106,7 @@ def scrape_pornhub_videos(performer_id, performer_type, task_id=None):
             update_task_progress(task_id, message=f"Scraping Pornhub page {page_number}...")
             
         current_url = f"{base_url}?page={page_number}"
-        print(f"Scraping pornhub page: {current_url}")
+        logger.info(f"Scraping pornhub page: {current_url}")
         
         try:
             response = requests.get(current_url, headers=HEADERS, timeout=15)
@@ -154,7 +157,7 @@ def scrape_pornhub_videos(performer_id, performer_type, task_id=None):
             time.sleep(1)
             
         except requests.exceptions.RequestException as e:
-            print(f"❌ An error occurred during request: {e}")
+            logger.error(f"An error occurred during request: {e}")
             break
             
     return videos_data

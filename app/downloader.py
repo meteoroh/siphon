@@ -2,13 +2,36 @@ import yt_dlp
 import os
 from app import db
 from app.models import Video
+from app.models import Video
+import logging
 
+logger = logging.getLogger(__name__)
+
+class YtDlpLogger:
+    def debug(self, msg):
+        # Filter out verbose debug messages if needed, or log at DEBUG level
+        # For now, we'll log at DEBUG, but app logger is at INFO, so these might be hidden
+        # unless we change app level.
+        # To see download progress details in logs, we might want to log some at INFO.
+        if msg.startswith('[download]'):
+            logger.info(msg)
+        else:
+            logger.debug(msg)
+
+    def info(self, msg):
+        logger.info(msg)
+
+    def warning(self, msg):
+        logger.warning(msg)
+
+    def error(self, msg):
+        logger.error(msg)
 FRAGMENT_RETRY_LIMIT = 20
 DOWNLOAD_BASE_DIR = 'downloads' # Default, should be configurable
 
 from app.tasks import update_task_progress
 
-def download_video(task_id, video_id):
+def download_video(task_id, video_id, trigger_autotag=True):
     # We need to create a new app context since this runs in a thread
     from app import create_app
     app = create_app(with_scheduler=False)
@@ -46,7 +69,8 @@ def download_video(task_id, video_id):
             'outtmpl': '%(title)s [%(id)s].%(ext)s',
             'fragment_retries': FRAGMENT_RETRY_LIMIT,
             'skip_unavailable_fragments': False,
-            'quiet': True,
+            'quiet': False, # We want logs now
+            'logger': YtDlpLogger(),
             'progress_hooks': [progress_hook]
         }
 
@@ -93,7 +117,7 @@ def download_video(task_id, video_id):
                     job_id = stash.scan_file(filename)
                     
                     if job_id:
-                        print(f"Stash scan job started: {job_id}")
+                        logger.info(f"Stash scan job started: {job_id}")
                         # Wait for scan to finish (up to 30s)
                         stash.wait_for_job(job_id)
                     
@@ -115,9 +139,9 @@ def download_video(task_id, video_id):
                         performer_id = stash.find_performer(video.performer.name)
                         if performer_id:
                             performer_ids.append(performer_id)
-                            print(f"Found Stash performer {video.performer.name} ({performer_id})")
+                            logger.info(f"Found Stash performer {video.performer.name} ({performer_id})")
                         else:
-                            print(f"Stash performer not found: {video.performer.name}")
+                            logger.warning(f"Stash performer not found: {video.performer.name}")
 
                         video_data = {
                             'title': info.get('title', video.title),
@@ -128,13 +152,20 @@ def download_video(task_id, video_id):
                         }
                         
                         stash.update_scene(scene_id, video_data)
-                        print(f"Updated Stash scene {scene_id} for {basename}")
+                        logger.info(f"Updated Stash scene {scene_id} for {basename}")
                         
                     else:
-                        print(f"Stash scene not found for {basename} after scan.")
+                        logger.warning(f"Stash scene not found for {basename} after scan.")
+                    
+                    # 4. Auto Tag
+                    if trigger_autotag:
+                        logger.info(f"Triggering Global AutoTag (was {filename})")
+                        stash.auto_tag()
+                    else:
+                        logger.info("Skipping AutoTag (batch mode)")
                         
             except Exception as e:
-                print(f"Stash integration error: {e}")
+                logger.error(f"Stash integration error: {e}")
                 # Don't fail the download task just because Stash sync failed
             # -------------------------
 

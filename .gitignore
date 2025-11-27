@@ -20,3 +20,7 @@ downloads/
 
 # OS Files
 .DS_Store
+
+# Logs
+logs/
+*.log
