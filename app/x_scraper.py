@@ -86,7 +86,7 @@ def extract_videos_from_json(data, video_links, username):
                     date_str = None
                     if created_at:
                         try:
-                            # Parse Twitter format
+                            # Parse X format
                             ts = time.strptime(created_at, '%a %b %d %H:%M:%S +0000 %Y')
                             date_str = time.strftime('%Y-%m-%d', ts)
                         except Exception:
@@ -168,7 +168,7 @@ def scrape_x_videos(username, task_id=None, use_cookies=False):
         
         url = f"https://x.com/{username}/media"
         if task_id:
-            update_task_progress(task_id, message=f"Navigating to {url}...")
+            update_task_progress(task_id, message=f"Opening {username}...")
         logger.info(f"Navigating to {url}...")
         
         try:
@@ -223,7 +223,7 @@ def scrape_x_videos(username, task_id=None, use_cookies=False):
             max_retries = 3
             
             if task_id:
-                update_task_progress(task_id, message="Scanning media grid...")
+                update_task_progress(task_id, message="Scanning...")
             logger.info("Scanning media grid...")
             
             while True:
@@ -284,7 +284,7 @@ def scrape_x_videos(username, task_id=None, use_cookies=False):
                     retries = 0
                     last_height = new_height
                     if task_id:
-                        update_task_progress(task_id, message=f"Found {len(video_links)} videos so far...")
+                        update_task_progress(task_id, message=f"Found {len(video_links)} videos...")
                     
         except Exception as e:
             logger.error(f"An error occurred: {e}")
@@ -319,7 +319,7 @@ def scrape_x_videos(username, task_id=None, use_cookies=False):
             
             if dom_videos:
                 if task_id:
-                    update_task_progress(task_id, message=f"Backfilling metadata for {len(dom_videos)} videos...")
+                    update_task_progress(task_id, message=f"Getting details for {len(dom_videos)} videos...")
                 logger.info(f"Backfilling metadata for {len(dom_videos)} videos...")
                 
                 for i, video in enumerate(dom_videos):

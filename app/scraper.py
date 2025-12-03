@@ -36,7 +36,7 @@ def scrape_xhamster_videos(performer_id, performer_type, task_id=None, use_cooki
 
     while True:
         if task_id:
-            update_task_progress(task_id, message=f"Scraping xHamster page {page_number}...")
+            update_task_progress(task_id, message=f"Scanning page {page_number}...")
             
         if page_number == 1:
             current_url = base_url
@@ -117,7 +117,7 @@ def scrape_pornhub_videos(performer_id, performer_type, task_id=None, use_cookie
     
     while True:
         if task_id:
-            update_task_progress(task_id, message=f"Scraping Pornhub page {page_number}...")
+            update_task_progress(task_id, message=f"Scanning page {page_number}...")
             
         current_url = f"{base_url}?page={page_number}"
         logger.info(f"Scraping pornhub page: {current_url}")

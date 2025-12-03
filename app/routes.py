@@ -35,10 +35,7 @@ def scan_performer(performer_id):
     task_id = start_task(run_scan_task, performer_id)
     return render_template('components/progress_bar.html', task_id=task_id, message="Initializing scan...", progress=0)
 
-@main.route('/')
-def index():
-    performers = Performer.query.order_by(Performer.created_at.desc()).all()
-    return render_template('index.html', performers=performers)
+
 
 @main.route('/performers/search')
 def search_performers():
@@ -291,6 +288,8 @@ def settings():
     stash_check_existing = Settings.query.filter_by(key='stash_check_existing').first()
     schedule_interval = Settings.query.filter_by(key='schedule_interval').first()
     local_scan_path = Settings.query.filter_by(key='local_scan_path').first()
+    local_scan_path_pornhub = Settings.query.filter_by(key='local_scan_path_pornhub').first()
+    local_scan_path_xhamster = Settings.query.filter_by(key='local_scan_path_xhamster').first()
     local_scan_path_x = Settings.query.filter_by(key='local_scan_path_x').first()
     local_check_existing = Settings.query.filter_by(key='local_check_existing').first()
     yt_dlp_auto_update = Settings.query.filter_by(key='yt_dlp_auto_update').first()
@@ -327,6 +326,8 @@ def settings():
                            schedule_interval=schedule_interval.value if schedule_interval else '60',
 
                            local_scan_path=local_scan_path.value if local_scan_path else '',
+                           local_scan_path_pornhub=local_scan_path_pornhub.value if local_scan_path_pornhub else '',
+                           local_scan_path_xhamster=local_scan_path_xhamster.value if local_scan_path_xhamster else '',
                            local_scan_path_x=local_scan_path_x.value if local_scan_path_x else '',
                            local_check_existing=local_check_existing.value if local_check_existing else 'true',
                            yt_dlp_auto_update=yt_dlp_auto_update.value if yt_dlp_auto_update else 'false',
@@ -415,12 +416,22 @@ def update_settings(key):
             
     elif key == 'localpath':
         path = request.form.get('local_scan_path')
+        path_pornhub = request.form.get('local_scan_path_pornhub')
+        path_xhamster = request.form.get('local_scan_path_xhamster')
         path_x = request.form.get('local_scan_path_x')
         check_existing = 'true' if request.form.get('local_check_existing') else 'false'
         
         s_path = Settings.query.filter_by(key='local_scan_path').first() or Settings(key='local_scan_path')
         s_path.value = path
         db.session.add(s_path)
+
+        s_path_ph = Settings.query.filter_by(key='local_scan_path_pornhub').first() or Settings(key='local_scan_path_pornhub')
+        s_path_ph.value = path_pornhub
+        db.session.add(s_path_ph)
+
+        s_path_xh = Settings.query.filter_by(key='local_scan_path_xhamster').first() or Settings(key='local_scan_path_xhamster')
+        s_path_xh.value = path_xhamster
+        db.session.add(s_path_xh)
 
         s_path_x = Settings.query.filter_by(key='local_scan_path_x').first() or Settings(key='local_scan_path_x')
         s_path_x.value = path_x
@@ -660,3 +671,64 @@ def upload_cookies():
         return "<div class='alert alert-success'>Cookies uploaded successfully!</div>"
     except Exception as e:
         return f"<div class='alert alert-danger'>Error uploading cookies: {str(e)}</div>"
+
+@main.route('/')
+def dashboard():
+    return render_template('dashboard.html')
+
+@main.route('/api/dashboard/stats')
+def dashboard_stats():
+    from app.tasks import tasks
+    from app.scheduler import scheduler
+    
+    # Stats
+    total_performers = Performer.query.count()
+    total_videos = Video.query.count()
+    total_new_videos = Video.query.filter_by(status='new').count()
+    
+    # Scheduler
+    next_scan = None
+    next_scan_relative = None
+    try:
+        job = scheduler.get_job('scheduled_scan')
+        if job and job.next_run_time:
+            next_scan = job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')
+            # Calculate relative time (e.g. "in 20 minutes")
+            diff = job.next_run_time - datetime.now(job.next_run_time.tzinfo)
+            minutes = int(diff.total_seconds() / 60)
+            if minutes < 0:
+                next_scan_relative = "Due now"
+            elif minutes < 60:
+                next_scan_relative = f"In {minutes} min{'s' if minutes != 1 else ''}"
+            else:
+                hours = minutes // 60
+                rem_mins = minutes % 60
+                if rem_mins == 0:
+                    next_scan_relative = f"In {hours} hour{'s' if hours != 1 else ''}"
+                else:
+                    next_scan_relative = f"In {hours}h {rem_mins}m"
+    except Exception:
+        pass
+        
+    # Tasks
+    active_tasks = {k: v for k, v in tasks.items() if v['status'] in ['pending', 'running']}
+    
+    # Recent tasks (completed/failed), limit to last 5
+    # Since dict is unordered in older python but ordered in newer, we can just take items.
+    # Ideally we'd have timestamps, but for now let's just take non-active ones.
+    finished_tasks = {k: v for k, v in tasks.items() if v['status'] in ['completed', 'failed']}
+    # Sort by something? We don't have timestamps in task dict. 
+    # Let's just take the last 5 items (assuming insertion order is roughly chronological)
+    recent_tasks = dict(list(finished_tasks.items())[-5:])
+    
+    # Reverse to show newest first
+    recent_tasks = dict(reversed(list(recent_tasks.items())))
+
+    return render_template('components/dashboard_stats.html',
+                           total_performers=total_performers,
+                           total_videos=total_videos,
+                           total_new_videos=total_new_videos,
+                           next_scan=next_scan,
+                           next_scan_relative=next_scan_relative,
+                           active_tasks=active_tasks,
+                           recent_tasks=recent_tasks)

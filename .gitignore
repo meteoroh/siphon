@@ -26,3 +26,9 @@ cookies.json
 # Logs
 logs/
 *.log
+
+# Editor Directories
+.idea/
+.vscode/
+*.swp
+*.swo

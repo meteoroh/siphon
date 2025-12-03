@@ -47,12 +47,22 @@ def download_video(task_id, video_id, trigger_autotag=True):
         local_path_setting = Settings.query.filter_by(key='local_scan_path').first()
         base_dir = local_path_setting.value if (local_path_setting and local_path_setting.value) else DOWNLOAD_BASE_DIR
 
-        # Check for site-specific path (X/Twitter)
+        # Check for site-specific path (X)
         is_x_video = video.performer.site == 'x'
         if is_x_video:
             local_path_x_setting = Settings.query.filter_by(key='local_scan_path_x').first()
             if local_path_x_setting and local_path_x_setting.value:
                 base_dir = local_path_x_setting.value
+        # Check for site-specific path (Pornhub)
+        elif video.performer.site == 'pornhub':
+            local_path_ph_setting = Settings.query.filter_by(key='local_scan_path_pornhub').first()
+            if local_path_ph_setting and local_path_ph_setting.value:
+                base_dir = local_path_ph_setting.value
+        # Check for site-specific path (xHamster)
+        elif video.performer.site == 'xhamster':
+            local_path_xh_setting = Settings.query.filter_by(key='local_scan_path_xhamster').first()
+            if local_path_xh_setting and local_path_xh_setting.value:
+                base_dir = local_path_xh_setting.value
 
         performer_name = video.performer.name
         download_dir = os.path.join(base_dir, performer_name)
@@ -68,12 +78,12 @@ def download_video(task_id, video_id, trigger_autotag=True):
                     total = d.get('total_bytes') or d.get('total_bytes_estimate') or 0
                     downloaded = d.get('downloaded_bytes') or 0
                     if total > 0:
-                        percent = (downloaded / total) * 100
-                        update_task_progress(task_id, progress=percent, message=f"Downloading: {percent:.1f}%", total_bytes=total, downloaded_bytes=downloaded)
+                        percent = round((downloaded / total) * 100, 1)
+                        update_task_progress(task_id, progress=percent, message=f"Downloading {video.performer.name}: {percent:.1f}%", total_bytes=total, downloaded_bytes=downloaded)
                 except Exception:
                     pass
             elif d['status'] == 'finished':
-                update_task_progress(task_id, progress=99, message="Processing...")
+                update_task_progress(task_id, progress=99, message=f"Processing {video.performer.name}...")
 
         # Default template
         outtmpl = '%(title)s [%(id)s].%(ext)s'
@@ -138,7 +148,7 @@ def download_video(task_id, video_id, trigger_autotag=True):
                 
                 stash = StashClient()
                 if stash.is_configured():
-                    update_task_progress(task_id, progress=99, message="Syncing with Stash...")
+                    update_task_progress(task_id, progress=99, message=f"Syncing {video.performer.name} with Stash...")
                     
                     # 1. Trigger Scan (Scan the directory once)
                     # Scanning the folder is more robust for new directories than scanning individual files
@@ -218,7 +228,7 @@ def download_video(task_id, video_id, trigger_autotag=True):
                 # Don't fail the download task just because Stash sync failed
             # -------------------------
 
-            update_task_progress(task_id, progress=100, message="Download complete")
+            update_task_progress(task_id, progress=100, message=f"Download complete for {video.performer.name}")
             return {'video_id': video_id, 'status': 'success'}
         except Exception as e:
             update_task_progress(task_id, message=f"Error: {str(e)}")

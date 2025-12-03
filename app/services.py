@@ -20,17 +20,25 @@ def scan_performer_service(performer, task_id=None):
     videos = scrape_performer(performer, task_id)
     
     if task_id:
-        update_task_progress(task_id, progress=50, message="Processing videos...")
+        update_task_progress(task_id, progress=50, message=f"Processing videos for {performer.name}...")
     
     # Get settings
     local_path_setting = Settings.query.filter_by(key='local_scan_path').first()
     local_path = local_path_setting.value if (local_path_setting and local_path_setting.value) else None
     
-    # Check for site-specific path (X/Twitter)
+    # Check for site-specific path
     if performer.site == 'x':
         local_path_x_setting = Settings.query.filter_by(key='local_scan_path_x').first()
         if local_path_x_setting and local_path_x_setting.value:
             local_path = local_path_x_setting.value
+    elif performer.site == 'pornhub':
+        local_path_ph_setting = Settings.query.filter_by(key='local_scan_path_pornhub').first()
+        if local_path_ph_setting and local_path_ph_setting.value:
+            local_path = local_path_ph_setting.value
+    elif performer.site == 'xhamster':
+        local_path_xh_setting = Settings.query.filter_by(key='local_scan_path_xhamster').first()
+        if local_path_xh_setting and local_path_xh_setting.value:
+            local_path = local_path_xh_setting.value
     
     stash_check_setting = Settings.query.filter_by(key='stash_check_existing').first()
     check_stash = stash_check_setting.value == 'true' if stash_check_setting else True
@@ -41,7 +49,7 @@ def scan_performer_service(performer, task_id=None):
     local_filenames = []
     if local_path and check_local_files:
         if task_id:
-            update_task_progress(task_id, message="Indexing local files...")
+            update_task_progress(task_id, message=f"Indexing local files for {performer.name}...")
         try:
             for root, dirs, files in os.walk(local_path):
                 for file in files:
@@ -63,7 +71,7 @@ def scan_performer_service(performer, task_id=None):
         return False
 
     if task_id:
-        update_task_progress(task_id, progress=50, message="Processing videos...")
+        update_task_progress(task_id, progress=50, message=f"Processing videos for {performer.name}...")
     
     # 2. Process EXISTING 'new' videos (Filter & Sync)
     existing_new_videos = Video.query.filter_by(performer_id=performer.id, status='new').all()
@@ -167,12 +175,12 @@ def scan_performer_service(performer, task_id=None):
         
         # Update progress for processing
         if task_id and total_videos > 0:
-            percent = 50 + ((i / total_videos) * 40)
-            update_task_progress(task_id, progress=percent, message=f"Processing {i+1}/{total_videos}...")
+            percent = round(50 + ((i / total_videos) * 40), 1)
+            update_task_progress(task_id, progress=percent, message=f"Processing {performer.name}: {i+1}/{total_videos}...")
     
     db.session.commit()
     
     if task_id:
-        update_task_progress(task_id, progress=100, message=f"Scan complete. Found {new_videos_count} new.")
+        update_task_progress(task_id, progress=100, message=f"Scan complete for {performer.name}. Found {new_videos_count} new.")
         
     return {'new_count': new_videos_count, 'total_found': len(videos)}

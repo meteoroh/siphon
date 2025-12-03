@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="h3 mb-0 d-flex align-items-center">
+        Dashboard
+        <button class="btn btn-sm border rounded-circle ms-2" hx-get="/api/dashboard/stats"
+            hx-target="#dashboard-content" hx-swap="innerHTML" title="Refresh"
+            style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+            <i class="bi bi-arrow-clockwise text-muted" style="font-size: 0.8rem;"></i>
+        </button>
+    </h1>
+</div>
+
+<div id="dashboard-content" hx-get="/api/dashboard/stats" hx-trigger="load, every 5s">
+    <!-- Content will be loaded here via HTMX -->
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
