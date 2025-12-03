@@ -48,7 +48,8 @@ def download_video(task_id, video_id, trigger_autotag=True):
         base_dir = local_path_setting.value if (local_path_setting and local_path_setting.value) else DOWNLOAD_BASE_DIR
 
         # Check for site-specific path (X/Twitter)
-        if video.performer.site == 'x':
+        is_x_video = video.performer.site == 'x'
+        if is_x_video:
             local_path_x_setting = Settings.query.filter_by(key='local_scan_path_x').first()
             if local_path_x_setting and local_path_x_setting.value:
                 base_dir = local_path_x_setting.value
@@ -74,9 +75,16 @@ def download_video(task_id, video_id, trigger_autotag=True):
             elif d['status'] == 'finished':
                 update_task_progress(task_id, progress=99, message="Processing...")
 
+        # Default template
+        outtmpl = '%(title)s [%(id)s].%(ext)s'
+        
+        # Custom template for X to ensure uniqueness and traceability
+        if is_x_video:
+            outtmpl = f'%(title)s [x-{video.viewkey}-%(id)s].%(ext)s'
+
         ydl_opts = {
             'paths': {'home': download_dir},
-            'outtmpl': '%(title)s [%(id)s].%(ext)s',
+            'outtmpl': outtmpl,
             'fragment_retries': FRAGMENT_RETRY_LIMIT,
             'skip_unavailable_fragments': False,
             'quiet': False, # We want logs now
@@ -95,29 +103,30 @@ def download_video(task_id, video_id, trigger_autotag=True):
                 logger.warning(f"Cookies enabled for {performer_name} but cookies.txt not found")
 
         try:
+            downloaded_files = []
+            
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(video.url, download=True)
-                filename = ydl.prepare_filename(info)
                 
-                # Fix: prepare_filename might return the full path if 'paths' opt is used.
-                # We should only join if it's just a filename, but it's safer to trust prepare_filename 
-                # if it returns a path that looks complete.
-                # However, if it returns a relative path, we want to make it absolute for Stash.
-                
-                if not os.path.isabs(filename):
-                    # If filename already starts with download_dir (relative or not), don't join again
-                    # This handles the case where prepare_filename returns 'downloads/Performer/file.mp4'
-                    # and download_dir is 'downloads/Performer'
+                # Handle multi-video tweets (playlist)
+                if 'entries' in info:
+                    entries = info['entries']
+                else:
+                    entries = [info]
                     
-                    # Normalize paths for comparison
-                    norm_filename = os.path.normpath(filename)
-                    norm_download_dir = os.path.normpath(download_dir)
+                for entry in entries:
+                    filename = ydl.prepare_filename(entry)
                     
-                    if not norm_filename.startswith(norm_download_dir):
-                         filename = os.path.join(download_dir, filename)
+                    if not os.path.isabs(filename):
+                        norm_filename = os.path.normpath(filename)
+                        norm_download_dir = os.path.normpath(download_dir)
+                        
+                        if not norm_filename.startswith(norm_download_dir):
+                             filename = os.path.join(download_dir, filename)
+                        
+                        filename = os.path.abspath(filename)
                     
-                    # Convert to absolute path for Stash
-                    filename = os.path.abspath(filename)
+                    downloaded_files.append({'filename': filename, 'info': entry})
             
             video.status = 'downloaded'
             db.session.commit()
@@ -131,87 +140,84 @@ def download_video(task_id, video_id, trigger_autotag=True):
                 if stash.is_configured():
                     update_task_progress(task_id, progress=99, message="Syncing with Stash...")
                     
-                    # 1. Trigger Scan
-                    # We pass the absolute path. If Stash is on a different machine/container with different paths,
-                    # this might fail to trigger a specific file scan, but we try anyway.
-                    job_id = stash.scan_file(filename)
+                    # 1. Trigger Scan (Scan the directory once)
+                    # Scanning the folder is more robust for new directories than scanning individual files
+                    job_id = stash.scan_file(download_dir)
                     
                     if job_id:
                         logger.info(f"Stash scan job started: {job_id}")
-                        # Wait for scan to finish (up to 30s)
                         stash.wait_for_job(job_id)
                     
-                    # 2. Find Scene
-                    # We search by basename (or viewkey inside it) to ensure we find it
-                    basename = os.path.basename(filename)
-                    scene_id = stash.find_scene_by_path(basename)
-                            
-                    # 3. Prepare Metadata & Scrape
-                    if scene_id:
-                        # Basic Metadata from yt-dlp/local DB
-                        upload_date = info.get('upload_date')
-                        formatted_date = None
-                        if upload_date and len(upload_date) == 8:
-                            formatted_date = f"{upload_date[:4]}-{upload_date[4:6]}-{upload_date[6:]}"
-                            
-                        # Find Performer in Stash
-                        performer_ids = []
-                        performer_id = stash.find_performer(video.performer.name)
-                        if performer_id:
-                            performer_ids.append(performer_id)
-                            logger.info(f"Found Stash performer {video.performer.name} ({performer_id})")
-                        else:
-                            logger.warning(f"Stash performer not found: {video.performer.name}")
-
-                        video_data = {
-                            'title': info.get('title', video.title),
-                            'url': video.url,
-                            'date': formatted_date,
-                            'description': info.get('description'),
-                            'performer_ids': performer_ids
-                        }
+                    for item in downloaded_files:
+                        filename = item['filename']
+                        entry_info = item['info']
                         
-                        # Scrape Metadata (if enabled)
-                        if trigger_autotag:
-                            logger.info(f"Scraping scene {scene_id} with builtin_autotag...")
-                            scraped_data = stash.scrape_scene(scene_id)
-                            
-                            if scraped_data:
-                                logger.info(f"Scrape successful. Merging data...")
+                        # 2. Find Scene
+                        basename = os.path.basename(filename)
+                        scene_id = stash.find_scene_by_path(basename)
                                 
-                                # Tags
-                                if scraped_data.get('tags'):
-                                    video_data['tag_ids'] = [t['stored_id'] for t in scraped_data['tags'] if t.get('stored_id')]
-                                    
-                                # Studio
-                                if scraped_data.get('studio') and scraped_data['studio'].get('stored_id'):
-                                    video_data['studio_id'] = scraped_data['studio']['stored_id']
-                                    
-                                # Performers (Merge)
-                                performers_list = scraped_data.get('performers') or []
-                                scraped_performer_ids = [p['stored_id'] for p in performers_list if p.get('stored_id')]
-                                if scraped_performer_ids:
-                                    for pid in scraped_performer_ids:
-                                        if pid not in video_data['performer_ids']:
-                                            video_data['performer_ids'].append(pid)
+                        # 3. Prepare Metadata & Scrape
+                        if scene_id:
+                            # Basic Metadata
+                            upload_date = entry_info.get('upload_date')
+                            formatted_date = None
+                            if upload_date and len(upload_date) == 8:
+                                formatted_date = f"{upload_date[:4]}-{upload_date[4:6]}-{upload_date[6:]}"
+                                
+                            # Find Performer in Stash
+                            performer_ids = []
+                            performer_id = stash.find_performer(video.performer.name)
+                            if performer_id:
+                                performer_ids.append(performer_id)
+                                logger.info(f"Found Stash performer {video.performer.name} ({performer_id})")
                             else:
-                                logger.warning(f"No scrape results found for scene {scene_id}")
-                        else:
-                            logger.info("Skipping AutoTag (batch mode)")
+                                logger.warning(f"Stash performer not found: {video.performer.name}")
 
-                        # 4. Single Update
-                        stash.update_scene(scene_id, video_data)
-                        logger.info(f"Updated Stash scene {scene_id} for {basename}")
-                        
-                    else:
-                        logger.warning(f"Stash scene not found for {basename} after scan.")
+                            video_data = {
+                                'title': entry_info.get('title', video.title),
+                                'url': video.url,
+                                'date': formatted_date,
+                                'description': entry_info.get('description'),
+                                'performer_ids': performer_ids
+                            }
+                            
+                            # Scrape Metadata (if enabled)
+                            if trigger_autotag:
+                                logger.info(f"Scraping scene {scene_id} with builtin_autotag...")
+                                scraped_data = stash.scrape_scene(scene_id)
+                                
+                                if scraped_data:
+                                    logger.info(f"Scrape successful. Merging data...")
+                                    
+                                    if scraped_data.get('tags'):
+                                        video_data['tag_ids'] = [t['stored_id'] for t in scraped_data['tags'] if t.get('stored_id')]
+                                        
+                                    if scraped_data.get('studio') and scraped_data['studio'].get('stored_id'):
+                                        video_data['studio_id'] = scraped_data['studio']['stored_id']
+                                        
+                                    performers_list = scraped_data.get('performers') or []
+                                    scraped_performer_ids = [p['stored_id'] for p in performers_list if p.get('stored_id')]
+                                    if scraped_performer_ids:
+                                        for pid in scraped_performer_ids:
+                                            if pid not in video_data['performer_ids']:
+                                                video_data['performer_ids'].append(pid)
+                                else:
+                                    logger.warning(f"No scrape results found for scene {scene_id}")
+                            else:
+                                logger.info("Skipping AutoTag (batch mode)")
+
+                            # 4. Single Update
+                            stash.update_scene(scene_id, video_data)
+                            logger.info(f"Updated Stash scene {scene_id} for {basename}")
+                            
+                        else:
+                            logger.warning(f"Stash scene not found for {basename} after scan.")
                         
             except Exception as e:
                 logger.error(f"Stash integration error: {e}")
                 # Don't fail the download task just because Stash sync failed
             # -------------------------
 
-            update_task_progress(task_id, progress=100, message="Download complete")
             update_task_progress(task_id, progress=100, message="Download complete")
             return {'video_id': video_id, 'status': 'success'}
         except Exception as e:

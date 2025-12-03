@@ -4,6 +4,7 @@ import re
 import logging
 from playwright.sync_api import sync_playwright
 from app.tasks import update_task_progress
+from app.models import Video
 
 logger = logging.getLogger(__name__)
 
@@ -290,6 +291,32 @@ def scrape_x_videos(username, task_id=None, use_cookies=False):
         finally:
             # Backfill metadata for DOM-only videos
             dom_videos = [v for v in video_links.values() if v.get('source') == 'dom']
+            
+            # Optimization: Filter out videos that already exist in the database
+            if dom_videos:
+                try:
+                    # We need to check if we are in an app context. 
+                    # scrape_x_videos is usually called from a task which has context.
+                    existing_viewkeys = set()
+                    # Get all viewkeys for this performer (if we knew the performer ID)
+                    # But we only have username here. 
+                    # So we can just query by viewkey.
+                    # Since we might have many, let's query in bulk or check one by one?
+                    # Bulk query is better.
+                    viewkeys_to_check = [v['id'] for v in dom_videos]
+                    existing_videos = Video.query.filter(Video.viewkey.in_(viewkeys_to_check)).all()
+                    existing_viewkeys = {v.viewkey for v in existing_videos}
+                    
+                    # Filter out existing
+                    videos_to_backfill = [v for v in dom_videos if v['id'] not in existing_viewkeys]
+                    
+                    if len(videos_to_backfill) < len(dom_videos):
+                        logger.info(f"Skipping backfill for {len(dom_videos) - len(videos_to_backfill)} existing videos.")
+                        dom_videos = videos_to_backfill
+                        
+                except Exception as e:
+                    logger.warning(f"Could not check database for existing videos: {e}")
+            
             if dom_videos:
                 if task_id:
                     update_task_progress(task_id, message=f"Backfilling metadata for {len(dom_videos)} videos...")

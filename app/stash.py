@@ -191,7 +191,7 @@ class StashClient:
         # This is much more robust than searching for the full filename which might have special chars
         import re
         search_term = path
-        viewkey_match = re.search(r'\[([a-zA-Z0-9]+)\]', path)
+        viewkey_match = re.search(r'\[([a-zA-Z0-9\-_]+)\]', path)
         if viewkey_match:
             search_term = viewkey_match.group(1)
             logger.debug(f"Searching Stash by viewkey: {search_term}")
