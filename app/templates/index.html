@@ -16,7 +16,14 @@
         <input type="text" class="form-control border-0 py-2" name="q" placeholder="Search performers..."
             value="{{ request.args.get('q', '') }}" hx-get="/performers/search"
             hx-trigger="keyup changed delay:500ms, search" hx-target="#performers-table-body"
-            hx-indicator=".htmx-indicator">
+            hx-indicator=".htmx-indicator" hx-include="[name='site_filter']">
+        <select class="form-select border-0 bg-body text-muted" name="site_filter" style="max-width: 150px;"
+            hx-get="/performers/search" hx-trigger="change" hx-target="#performers-table-body" hx-include="[name='q']">
+            <option value="">All Sites</option>
+            <option value="pornhub">Pornhub</option>
+            <option value="xhamster">xHamster</option>
+            <option value="x">X (Twitter)</option>
+        </select>
     </div>
 </div>
 
@@ -58,7 +65,8 @@
             </div>
             <div class="modal-body pt-4">
                 <form hx-post="/performers" hx-target="#performers-table-body" hx-swap="afterbegin"
-                    hx-on::after-request="if(event.detail.successful) { this.reset(); bootstrap.Modal.getInstance(document.getElementById('addPerformerModal')).hide(); }">
+                    id="add-performer-form"
+                    hx-on::after-request="if(event.detail.successful) { this.reset(); bootstrap.Modal.getInstance(document.getElementById('addPerformerModal')).hide(); document.getElementById('add-site-select').dispatchEvent(new Event('change')); }">
                     <div class="mb-3">
                         <label class="form-label text-xs text-uppercase text-muted fw-bold">Name</label>
                         <input type="text" class="form-control" name="name" required>
@@ -70,14 +78,15 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-xs text-uppercase text-muted fw-bold">Site</label>
-                        <select class="form-select" name="site">
+                        <select class="form-select" name="site" id="add-site-select">
                             <option value="pornhub">Pornhub</option>
                             <option value="xhamster">xHamster</option>
+                            <option value="x">X (Twitter)</option>
                         </select>
                     </div>
-                    <div class="mb-4">
+                    <div class="mb-4" id="add-type-container">
                         <label class="form-label text-xs text-uppercase text-muted fw-bold">Type</label>
-                        <select class="form-select" name="type">
+                        <select class="form-select" name="type" id="add-type-select">
                             <option value="model">Model</option>
                             <option value="pornstar">Pornstar</option>
                             <option value="creator">Creator</option>
@@ -91,4 +100,115 @@
         </div>
     </div>
 </div>
+</div>
+<script>
+    document.getElementById('add-site-select').addEventListener('change', function () {
+        const typeContainer = document.getElementById('add-type-container');
+        const typeSelect = document.getElementById('add-type-select');
+        const options = typeSelect.options;
+
+        // Reset all options first
+        for (let i = 0; i < options.length; i++) {
+            options[i].hidden = false;
+            options[i].disabled = false;
+        }
+
+        if (this.value === 'x') {
+            typeContainer.style.display = 'none';
+            typeSelect.disabled = true;
+        } else {
+            typeContainer.style.display = 'block';
+            typeSelect.disabled = false;
+
+            if (this.value === 'xhamster') {
+                // xHamster: Creator, Pornstar (No Model)
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === 'model') {
+                        options[i].hidden = true;
+                        options[i].disabled = true;
+                    }
+                }
+                // Select first available if current is disabled
+                if (typeSelect.value === 'model') typeSelect.value = 'pornstar';
+
+            } else if (this.value === 'pornhub') {
+                // Pornhub: Model, Pornstar (No Creator)
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === 'creator') {
+                        options[i].hidden = true;
+                        options[i].disabled = true;
+                    }
+                }
+                if (typeSelect.value === 'creator') typeSelect.value = 'model';
+            }
+        }
+    });
+
+    // Trigger change on load to set initial state
+    document.getElementById('add-site-select').dispatchEvent(new Event('change'));
+
+    // Global handler for Edit Performer modals
+    function updateEditModalTypeOptions(siteSelect) {
+        const form = siteSelect.closest('form');
+        const typeContainer = form.querySelector('.edit-type-container');
+        const typeSelect = form.querySelector('.edit-type-select');
+
+        if (!typeContainer || !typeSelect) return;
+
+        const options = typeSelect.options;
+        const site = siteSelect.value;
+
+        // Reset all options first
+        for (let i = 0; i < options.length; i++) {
+            options[i].hidden = false;
+            options[i].disabled = false;
+        }
+
+        if (site === 'x') {
+            typeContainer.style.display = 'none';
+            typeSelect.disabled = true;
+        } else {
+            typeContainer.style.display = 'block';
+            typeSelect.disabled = false;
+
+            if (site === 'xhamster') {
+                // xHamster: Creator, Pornstar (No Model)
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === 'model') {
+                        options[i].hidden = true;
+                        options[i].disabled = true;
+                    }
+                }
+                // Select first available if current is disabled
+                if (typeSelect.value === 'model') typeSelect.value = 'pornstar';
+
+            } else if (site === 'pornhub') {
+                // Pornhub: Model, Pornstar (No Creator)
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === 'creator') {
+                        options[i].hidden = true;
+                        options[i].disabled = true;
+                    }
+                }
+                if (typeSelect.value === 'creator') typeSelect.value = 'model';
+            }
+        }
+    }
+
+    // Event delegation for site changes in edit modals
+    document.addEventListener('change', function (e) {
+        if (e.target.classList.contains('edit-site-select')) {
+            updateEditModalTypeOptions(e.target);
+        }
+    });
+
+    // Initialize when modal is shown
+    document.addEventListener('shown.bs.modal', function (e) {
+        const modal = e.target;
+        const siteSelect = modal.querySelector('.edit-site-select');
+        if (siteSelect) {
+            updateEditModalTypeOptions(siteSelect);
+        }
+    });
+</script>
 {% endblock %}

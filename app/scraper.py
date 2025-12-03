@@ -19,7 +19,7 @@ HEADERS = {
 
 from app.tasks import update_task_progress
 
-def scrape_xhamster_videos(performer_id, performer_type, task_id=None):
+def scrape_xhamster_videos(performer_id, performer_type, task_id=None, use_cookies=False):
     """
     Scrapes videos for xHamster performers.
     """
@@ -46,7 +46,21 @@ def scrape_xhamster_videos(performer_id, performer_type, task_id=None):
         logger.info(f"Scraping xhamster page: {current_url}")
         
         try:
-            response = requests.get(current_url, headers=HEADERS, timeout=15)
+            cookies = {}
+            if use_cookies:
+                import http.cookiejar
+                import os
+                if os.path.exists('cookies.txt'):
+                    try:
+                        cj = http.cookiejar.MozillaCookieJar('cookies.txt')
+                        cj.load()
+                        # Convert to dict for requests
+                        cookies = {cookie.name: cookie.value for cookie in cj}
+                        logger.info("Loaded cookies from cookies.txt for xHamster scraping")
+                    except Exception as e:
+                        logger.error(f"Error loading cookies: {e}")
+
+            response = requests.get(current_url, headers=HEADERS, cookies=cookies, timeout=15)
             if response.status_code == 404:
                 break
             response.raise_for_status()
@@ -86,7 +100,7 @@ def scrape_xhamster_videos(performer_id, performer_type, task_id=None):
             
     return all_found_videos
 
-def scrape_pornhub_videos(performer_id, performer_type, task_id=None):
+def scrape_pornhub_videos(performer_id, performer_type, task_id=None, use_cookies=False):
     """
     Scrapes videos for Pornhub performers using BeautifulSoup (better for duration/metadata).
     """
@@ -109,7 +123,21 @@ def scrape_pornhub_videos(performer_id, performer_type, task_id=None):
         logger.info(f"Scraping pornhub page: {current_url}")
         
         try:
-            response = requests.get(current_url, headers=HEADERS, timeout=15)
+            cookies = {}
+            if use_cookies:
+                import http.cookiejar
+                import os
+                if os.path.exists('cookies.txt'):
+                    try:
+                        cj = http.cookiejar.MozillaCookieJar('cookies.txt')
+                        cj.load()
+                        # Convert to dict for requests
+                        cookies = {cookie.name: cookie.value for cookie in cj}
+                        logger.info("Loaded cookies from cookies.txt for Pornhub scraping")
+                    except Exception as e:
+                        logger.error(f"Error loading cookies: {e}")
+
+            response = requests.get(current_url, headers=HEADERS, cookies=cookies, timeout=15)
             if response.status_code == 404:
                 break
             response.raise_for_status()
@@ -176,7 +204,26 @@ def format_duration(seconds):
     except Exception:
         return str(seconds)
 
-def is_video_allowed(title, performer):
+def parse_duration_to_minutes(duration_str):
+    if not duration_str:
+        return 0
+    try:
+        parts = list(map(int, duration_str.split(':')))
+        if len(parts) == 2: # MM:SS
+            return parts[0] + (parts[1] / 60)
+        elif len(parts) == 3: # HH:MM:SS
+            return (parts[0] * 60) + parts[1] + (parts[2] / 60)
+        return 0
+    except Exception:
+        return 0
+
+def is_video_allowed(title, performer, duration_str=None):
+    # Check Minimum Duration
+    if performer.min_duration > 0:
+        minutes = parse_duration_to_minutes(duration_str)
+        if minutes < performer.min_duration:
+            return False # Too short
+
     # Global Blacklist
     from app.models import Settings
     global_blacklist_setting = Settings.query.filter_by(key='blacklist').first()
@@ -211,7 +258,7 @@ def is_video_allowed(title, performer):
 def filter_videos(videos, performer):
     filtered_videos = []
     for video in videos:
-        if is_video_allowed(video['title'], performer):
+        if is_video_allowed(video['title'], performer, video.get('duration')):
             filtered_videos.append(video)
     return filtered_videos
 
@@ -221,8 +268,11 @@ def scrape_performer(performer, task_id=None):
     """
     videos = []
     if performer.site == 'xhamster':
-        videos = scrape_xhamster_videos(performer.id, performer.type, task_id)
+        videos = scrape_xhamster_videos(performer.id, performer.type, task_id, performer.use_cookies)
     elif performer.site == 'pornhub':
-        videos = scrape_pornhub_videos(performer.id, performer.type, task_id)
+        videos = scrape_pornhub_videos(performer.id, performer.type, task_id, performer.use_cookies)
+    elif performer.site == 'x':
+        from app.x_scraper import scrape_x_videos
+        videos = scrape_x_videos(performer.id, task_id, performer.use_cookies)
     
     return videos

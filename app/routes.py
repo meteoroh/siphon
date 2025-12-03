@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, make_response
 from datetime import datetime
 from app.models import Performer, Video, db
 from app.scraper import scrape_performer
@@ -36,18 +36,23 @@ def scan_performer(performer_id):
 
 @main.route('/')
 def index():
-    performers = Performer.query.all()
+    performers = Performer.query.order_by(Performer.created_at.desc()).all()
     return render_template('index.html', performers=performers)
 
 @main.route('/performers/search')
 def search_performers():
-    search_query = request.args.get('q')
+    query = request.args.get('q', '')
+    site_filter = request.args.get('site_filter', '')
+    
     performers_query = Performer.query
     
-    if search_query:
-        performers_query = performers_query.filter(Performer.name.ilike(f'%{search_query}%'))
-    
-    performers = performers_query.all()
+    if query:
+        performers_query = performers_query.filter(Performer.name.ilike(f'%{query}%'))
+        
+    if site_filter:
+        performers_query = performers_query.filter(Performer.site == site_filter)
+        
+    performers = performers_query.order_by(Performer.created_at.desc()).all()
     return render_template('components/performer_list.html', performers=performers)
 
 @main.route('/performers', methods=['GET', 'POST'])
@@ -58,6 +63,9 @@ def performers():
         site = request.form.get('site')
         p_type = request.form.get('type')
         
+        if site == 'x' and not p_type:
+            p_type = 'user'
+        
         if Performer.query.get(p_id):
             return "Performer ID already exists", 400
             
@@ -66,15 +74,22 @@ def performers():
         db.session.commit()
         
         # Return partial HTML for HTMX
-        # Return row HTML for HTMX
-        return render_template('components/performer_row.html', performer=performer)
+        html = render_template('components/performer_row.html', performer=performer)
+        response = make_response(html)
+        
+        # If this is the first performer, replace the entire table body content
+        # This removes the "No performers found" row and adds the new row
+        if Performer.query.count() == 1:
+            response.headers['HX-Reswap'] = 'innerHTML'
+            
+        return response
 
     performers_query = Performer.query
     search_query = request.args.get('q')
     if search_query:
         performers_query = performers_query.filter(Performer.name.ilike(f'%{search_query}%'))
     
-    performers = performers_query.all()
+    performers = performers_query.order_by(Performer.created_at.desc()).all()
     return render_template('index.html', performers=performers)
 
 @main.route('/performers/<performer_id>')
@@ -90,6 +105,11 @@ def update_performer_settings(performer_id):
     performer.blacklist_keywords = request.form.get('blacklist_keywords')
     performer.whitelist_keywords = request.form.get('whitelist_keywords')
     performer.scheduled_scan_enabled = 'scheduled_scan_enabled' in request.form
+    performer.use_cookies = 'use_cookies' in request.form
+    try:
+        performer.min_duration = int(request.form.get('min_duration', 0))
+    except ValueError:
+        performer.min_duration = 0
     db.session.commit()
     return "<div class='alert alert-success'>Settings saved!</div>"
 
@@ -113,7 +133,14 @@ def edit_performer(performer_id):
     performer = Performer.query.get_or_404(performer_id)
     performer.name = request.form.get('name')
     performer.site = request.form.get('site')
-    performer.type = request.form.get('type')
+    p_type = request.form.get('type')
+    
+    if performer.site == 'x' and not p_type:
+        p_type = 'user'
+        
+    if p_type:
+        performer.type = p_type
+        
     db.session.commit()
     return "OK"
 
@@ -124,6 +151,11 @@ def delete_performer(performer_id):
     Video.query.filter_by(performer_id=performer.id).delete()
     db.session.delete(performer)
     db.session.commit()
+    
+    # If no performers left, show the empty state
+    if Performer.query.count() == 0:
+        return render_template('components/no_performers_row.html')
+        
     return ""
 
 @main.route('/download/batch', methods=['POST'])
@@ -258,6 +290,7 @@ def settings():
     stash_check_existing = Settings.query.filter_by(key='stash_check_existing').first()
     schedule_interval = Settings.query.filter_by(key='schedule_interval').first()
     local_scan_path = Settings.query.filter_by(key='local_scan_path').first()
+    local_scan_path_x = Settings.query.filter_by(key='local_scan_path_x').first()
     local_check_existing = Settings.query.filter_by(key='local_check_existing').first()
     yt_dlp_auto_update = Settings.query.filter_by(key='yt_dlp_auto_update').first()
     yt_dlp_last_updated = Settings.query.filter_by(key='yt_dlp_last_updated').first()
@@ -289,7 +322,9 @@ def settings():
                            stash_path_mapping=stash_path_mapping.value if stash_path_mapping else '',
                            stash_check_existing=stash_check_existing.value if stash_check_existing else 'true',
                            schedule_interval=schedule_interval.value if schedule_interval else '60',
+
                            local_scan_path=local_scan_path.value if local_scan_path else '',
+                           local_scan_path_x=local_scan_path_x.value if local_scan_path_x else '',
                            local_check_existing=local_check_existing.value if local_check_existing else 'true',
                            yt_dlp_auto_update=yt_dlp_auto_update.value if yt_dlp_auto_update else 'false',
                            yt_dlp_version=ytdlp_version,
@@ -376,11 +411,16 @@ def update_settings(key):
             
     elif key == 'localpath':
         path = request.form.get('local_scan_path')
+        path_x = request.form.get('local_scan_path_x')
         check_existing = 'true' if request.form.get('local_check_existing') else 'false'
         
         s_path = Settings.query.filter_by(key='local_scan_path').first() or Settings(key='local_scan_path')
         s_path.value = path
         db.session.add(s_path)
+
+        s_path_x = Settings.query.filter_by(key='local_scan_path_x').first() or Settings(key='local_scan_path_x')
+        s_path_x.value = path_x
+        db.session.add(s_path_x)
 
         l_check = Settings.query.filter_by(key='local_check_existing').first() or Settings(key='local_check_existing')
         l_check.value = check_existing
@@ -601,3 +641,18 @@ def import_performers():
     except Exception as e:
         return f"<div class='alert alert-danger'>Error importing file: {str(e)}</div>"
 
+@main.route('/settings/cookies', methods=['POST'])
+def upload_cookies():
+    if 'file' not in request.files:
+        return "<div class='alert alert-danger'>No file uploaded</div>"
+        
+    file = request.files['file']
+    if file.filename == '':
+        return "<div class='alert alert-danger'>No file selected</div>"
+        
+    try:
+        # Save to root directory
+        file.save('cookies.txt')
+        return "<div class='alert alert-success'>Cookies uploaded successfully!</div>"
+    except Exception as e:
+        return f"<div class='alert alert-danger'>Error uploading cookies: {str(e)}</div>"

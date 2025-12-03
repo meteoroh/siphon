@@ -9,6 +9,8 @@ class Performer(db.Model):
     blacklist_keywords = db.Column(db.Text, nullable=True) # JSON string or comma-separated
     whitelist_keywords = db.Column(db.Text, nullable=True) # JSON string or comma-separated
     scheduled_scan_enabled = db.Column(db.Boolean, default=True)
+    use_cookies = db.Column(db.Boolean, default=False)
+    min_duration = db.Column(db.Integer, default=0) # Minimum duration in minutes
     last_scan = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -35,6 +37,8 @@ class Performer(db.Model):
                 return f"https://xhamster.com/creators/{self.id}"
             elif self.type == 'pornstar':
                 return f"https://xhamster.com/pornstars/{self.id}"
+        elif self.site == 'x':
+            return f"https://x.com/{self.id}"
         return "#"
 
 class Video(db.Model):
@@ -43,6 +47,7 @@ class Video(db.Model):
     title = db.Column(db.String(256), nullable=False)
     url = db.Column(db.String(512), nullable=False)
     viewkey = db.Column(db.String(64), nullable=False)
+    date = db.Column(db.String(32), nullable=True) # YYYY-MM-DD
     duration = db.Column(db.String(32), nullable=True) # e.g., "10:05"
     status = db.Column(db.String(32), default='new') # 'new', 'downloaded', 'ignored', 'blacklisted'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

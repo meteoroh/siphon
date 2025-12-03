@@ -15,7 +15,7 @@
             </h1>
             <div class="d-flex gap-2">
                 <span
-                    class="badge rounded-pill {{ 'bg-warning-subtle text-warning-emphasis' if performer.site == 'pornhub' else 'bg-danger-subtle text-danger-emphasis' }} border border-0">
+                    class="badge rounded-pill {{ 'bg-warning-subtle text-warning-emphasis' if performer.site == 'pornhub' else ('bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle' if performer.site == 'x' else 'bg-danger-subtle text-danger-emphasis') }} border border-0">
                     {{ performer.site }}
                 </span>
                 <span class="badge bg-secondary-subtle text-secondary-emphasis border border-0 rounded-pill">{{
@@ -50,6 +50,20 @@
                             Scanning</label>
                         <div class="form-text text-muted">If unchecked, this performer will be skipped during background
                             scans.</div>
+                    </div>
+                    <div class="mb-4 form-check">
+                        <input type="checkbox" class="form-check-input" id="use_cookies" name="use_cookies" {% if
+                            performer.use_cookies %}checked{% endif %}>
+                        <label class="form-check-label fw-medium" for="use_cookies">Use Cookies</label>
+                        <div class="form-text text-muted">Use <code>cookies.txt</code> for authentication (required for
+                            premium/age-restricted content).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-xs text-uppercase text-muted fw-bold">Minimum Duration
+                            (minutes)</label>
+                        <input type="number" class="form-control" name="min_duration"
+                            value="{{ performer.min_duration or 0 }}" min="0">
+                        <div class="form-text">Videos shorter than this will be ignored. Set to 0 to disable.</div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -175,6 +189,8 @@
                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
                             style="font-size: 0.75rem; letter-spacing: 0.5px;">Title</th>
                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
+                            style="font-size: 0.75rem; letter-spacing: 0.5px;">Date</th>
+                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
                             style="font-size: 0.75rem; letter-spacing: 0.5px;">Duration</th>
                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2"
                             style="font-size: 0.75rem; letter-spacing: 0.5px;">Status</th>
@@ -187,7 +203,7 @@
                     {% include 'components/video_row.html' %}
                     {% else %}
                     <tr>
-                        <td colspan="5" class="text-center py-5 text-muted">
+                        <td colspan="6" class="text-center py-5 text-muted">
                             <i class="bi bi-camera-video display-4 opacity-25 mb-3"></i>
                             <p>No videos found yet. Try scanning.</p>
                         </td>

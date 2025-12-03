@@ -1,7 +1,7 @@
 <tr>
     <td class="ps-4 py-3">
         <div class="d-flex flex-column">
-            <a href="/performers/{{ performer.id }}" class="text-decoration-none fw-bold text-dark mb-0">
+            <a href="/performers/{{ performer.id }}" class="text-decoration-none fw-bold text-body mb-0">
                 {{ performer.name }}
             </a>
             <small class="text-muted text-xs">{{ performer.id }}</small>
@@ -9,7 +9,7 @@
     </td>
     <td>
         <span
-            class="badge rounded-pill {{ 'bg-warning-subtle text-warning-emphasis' if performer.site == 'pornhub' else 'bg-danger-subtle text-danger-emphasis' }} border border-0">
+            class="badge rounded-pill {{ 'bg-warning-subtle text-warning-emphasis' if performer.site == 'pornhub' else ('bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle' if performer.site == 'x' else 'bg-danger-subtle text-danger-emphasis') }} border border-0">
             {{ performer.site }}
         </span>
     </td>
@@ -64,16 +64,18 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label text-xs text-uppercase text-muted fw-bold">Site</label>
-                                <select class="form-select" name="site">
+                                <select class="form-select edit-site-select" name="site">
                                     <option value="pornhub" {% if performer.site=='pornhub' %}selected{% endif %}>
                                         Pornhub</option>
                                     <option value="xhamster" {% if performer.site=='xhamster' %}selected{% endif %}>
                                         xHamster</option>
+                                    <option value="x" {% if performer.site=='x' %}selected{% endif %}>
+                                        X (Twitter)</option>
                                 </select>
                             </div>
-                            <div class="mb-4">
+                            <div class="mb-4 edit-type-container">
                                 <label class="form-label text-xs text-uppercase text-muted fw-bold">Type</label>
-                                <select class="form-select" name="type">
+                                <select class="form-select edit-type-select" name="type">
                                     <option value="model" {% if performer.type=='model' %}selected{% endif %}>Model
                                     </option>
                                     <option value="pornstar" {% if performer.type=='pornstar' %}selected{% endif %}>

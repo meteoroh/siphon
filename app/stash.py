@@ -25,6 +25,29 @@ class StashClient:
     def is_configured(self):
         return bool(self.url)
 
+    def _apply_path_mapping(self, path):
+        """Applies path mapping to a local path."""
+        if not self.path_mapping:
+            return path
+            
+        # Support multiple mappings separated by newline or semicolon
+        mappings = self.path_mapping.replace('\n', ';').split(';')
+        
+        for mapping in mappings:
+            if '=' not in mapping:
+                continue
+                
+            local_prefix, remote_prefix = mapping.split('=', 1)
+            local_prefix = local_prefix.strip()
+            remote_prefix = remote_prefix.strip()
+            
+            if path.startswith(local_prefix):
+                new_path = path.replace(local_prefix, remote_prefix, 1)
+                logger.info(f"Mapped path: {path} -> {new_path}")
+                return new_path
+                
+        return path
+
     def _post(self, query, variables=None):
         if not self.url:
             raise Exception("Stash URL not configured")
@@ -94,14 +117,7 @@ class StashClient:
             return False
             
         # Path Mapping Logic
-        if self.path_mapping and '=' in self.path_mapping:
-            local_prefix, remote_prefix = self.path_mapping.split('=', 1)
-            local_prefix = local_prefix.strip()
-            remote_prefix = remote_prefix.strip()
-            
-            if path.startswith(local_prefix):
-                path = path.replace(local_prefix, remote_prefix, 1)
-                logger.info(f"Mapped path to Stash format: {path}")
+        path = self._apply_path_mapping(path)
             
         query = """
         mutation MetadataScan($paths: [String!]) {
@@ -127,14 +143,7 @@ class StashClient:
         
         if path:
             # Path Mapping Logic
-            if self.path_mapping and '=' in self.path_mapping:
-                local_prefix, remote_prefix = self.path_mapping.split('=', 1)
-                local_prefix = local_prefix.strip()
-                remote_prefix = remote_prefix.strip()
-                
-                if path.startswith(local_prefix):
-                    path = path.replace(local_prefix, remote_prefix, 1)
-                    logger.info(f"Mapped path for AutoTag: {path}")
+            path = self._apply_path_mapping(path)
             variables['paths'] = [path]
         else:
             variables['paths'] = None

@@ -47,9 +47,19 @@ def download_video(task_id, video_id, trigger_autotag=True):
         local_path_setting = Settings.query.filter_by(key='local_scan_path').first()
         base_dir = local_path_setting.value if (local_path_setting and local_path_setting.value) else DOWNLOAD_BASE_DIR
 
+        # Check for site-specific path (X/Twitter)
+        if video.performer.site == 'x':
+            local_path_x_setting = Settings.query.filter_by(key='local_scan_path_x').first()
+            if local_path_x_setting and local_path_x_setting.value:
+                base_dir = local_path_x_setting.value
+
         performer_name = video.performer.name
         download_dir = os.path.join(base_dir, performer_name)
         os.makedirs(download_dir, exist_ok=True)
+        try:
+            os.chmod(download_dir, 0o755)
+        except Exception:
+            pass
 
         def progress_hook(d):
             if d['status'] == 'downloading':
@@ -71,8 +81,18 @@ def download_video(task_id, video_id, trigger_autotag=True):
             'skip_unavailable_fragments': False,
             'quiet': False, # We want logs now
             'logger': YtDlpLogger(),
+
             'progress_hooks': [progress_hook]
         }
+
+        # Add cookies if enabled for performer
+        if video.performer.use_cookies:
+            cookie_file = 'cookies.txt'
+            if os.path.exists(cookie_file):
+                ydl_opts['cookiefile'] = cookie_file
+                logger.info(f"Using cookies for download (Performer: {performer_name})")
+            else:
+                logger.warning(f"Cookies enabled for {performer_name} but cookies.txt not found")
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:

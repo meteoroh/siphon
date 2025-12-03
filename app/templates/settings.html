@@ -139,6 +139,7 @@
                                     name="yt_dlp_auto_update" {% if yt_dlp_auto_update=='true' %}checked{% endif %}>
                                 <label class="form-check-label fw-medium" for="autoUpdateCheck">Automatic Updates
                                     (Daily)</label>
+                                <div class="form-text text-muted">Restart required to take effect.</div>
                             </div>
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary">Save Settings</button>
@@ -211,6 +212,14 @@
                                     value="{{ local_scan_path }}" placeholder="/path/to/videos">
                                 <div class="form-text">Directory where videos will be downloaded.</div>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label text-xs text-uppercase text-muted fw-bold">X (Twitter) Download
+                                    Directory (Optional)</label>
+                                <input type="text" class="form-control" name="local_scan_path_x"
+                                    value="{{ local_scan_path_x }}" placeholder="/path/to/x_videos">
+                                <div class="form-text">If set, X videos will be downloaded here instead of the default
+                                    directory.</div>
+                            </div>
                             <div class="mb-4 form-check">
                                 <input type="checkbox" class="form-check-input" id="local_check_existing"
                                     name="local_check_existing" {% if local_check_existing=='true' %}checked{% endif %}>
@@ -262,6 +271,24 @@
                                     hx-target="#stash-message" hx-swap="innerHTML">Test Connection</button>
                             </div>
                             <div id="stash-message" class="mt-2"></div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Cookies -->
+                <div class="card border-0 mb-4">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
+                        <h5 class="mb-0 fw-bold">Cookies</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <p class="text-muted small mb-3">Upload <code>cookies.txt</code> for authenticated scraping</p>
+                        <form hx-post="/settings/cookies" hx-encoding="multipart/form-data"
+                            hx-target="#cookies-message">
+                            <div class="mb-3">
+                                <input type="file" class="form-control" name="file" accept=".json,.txt" required>
+                            </div>
+                            <button class="btn btn-primary" type="submit">Upload Cookies</button>
+                            <div id="cookies-message" class="mt-2"></div>
                         </form>
                     </div>
                 </div>

@@ -26,6 +26,12 @@ def scan_performer_service(performer, task_id=None):
     local_path_setting = Settings.query.filter_by(key='local_scan_path').first()
     local_path = local_path_setting.value if (local_path_setting and local_path_setting.value) else None
     
+    # Check for site-specific path (X/Twitter)
+    if performer.site == 'x':
+        local_path_x_setting = Settings.query.filter_by(key='local_scan_path_x').first()
+        if local_path_x_setting and local_path_x_setting.value:
+            local_path = local_path_x_setting.value
+    
     stash_check_setting = Settings.query.filter_by(key='stash_check_existing').first()
     check_stash = stash_check_setting.value == 'true' if stash_check_setting else True
     
@@ -63,7 +69,7 @@ def scan_performer_service(performer, task_id=None):
     existing_new_videos = Video.query.filter_by(performer_id=performer.id, status='new').all()
     for vid in existing_new_videos:
         # Filter check
-        if not is_video_allowed(vid.title, performer):
+        if not is_video_allowed(vid.title, performer, vid.duration):
             vid.status = 'ignored'
             continue
             
@@ -141,7 +147,7 @@ def scan_performer_service(performer, task_id=None):
             # Check Local Path
             in_local = check_local(v_data['viewkey'], v_data['title'])
 
-            if not is_video_allowed(v_data['title'], performer):
+            if not is_video_allowed(v_data['title'], performer, v_data.get('duration')):
                 status = 'ignored'
             else:
                 status = 'downloaded' if (in_stash or in_local) else 'new'
@@ -151,6 +157,7 @@ def scan_performer_service(performer, task_id=None):
                 title=v_data['title'],
                 url=v_data['url'],
                 viewkey=v_data['viewkey'],
+                date=v_data.get('date'),
                 duration=v_data.get('duration'),
                 status=status
             )

@@ -1,8 +1,8 @@
-"""Initial migration
+"""Reset db
 
-Revision ID: 8cff8a717d68
+Revision ID: e6952104f93b
 Revises: 
-Create Date: 2025-11-26 16:24:45.979124
+Create Date: 2025-12-02 22:52:20.882095
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '8cff8a717d68'
+revision = 'e6952104f93b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -23,10 +23,11 @@ def upgrade():
     sa.Column('name', sa.String(length=128), nullable=False),
     sa.Column('site', sa.String(length=64), nullable=False),
     sa.Column('type', sa.String(length=64), nullable=False),
-    sa.Column('filter_enabled', sa.Boolean(), nullable=True),
-    sa.Column('keywords', sa.Text(), nullable=True),
     sa.Column('blacklist_keywords', sa.Text(), nullable=True),
     sa.Column('whitelist_keywords', sa.Text(), nullable=True),
+    sa.Column('scheduled_scan_enabled', sa.Boolean(), nullable=True),
+    sa.Column('use_cookies', sa.Boolean(), nullable=True),
+    sa.Column('min_duration', sa.Integer(), nullable=True),
     sa.Column('last_scan', sa.DateTime(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
@@ -44,6 +45,7 @@ def upgrade():
     sa.Column('title', sa.String(length=256), nullable=False),
     sa.Column('url', sa.String(length=512), nullable=False),
     sa.Column('viewkey', sa.String(length=64), nullable=False),
+    sa.Column('date', sa.String(length=32), nullable=True),
     sa.Column('duration', sa.String(length=32), nullable=True),
     sa.Column('status', sa.String(length=32), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
