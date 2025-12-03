@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, jsonify, make_response
+import os
 from datetime import datetime
 from app.models import Performer, Video, db
 from app.scraper import scrape_performer
@@ -312,6 +313,8 @@ def settings():
     except Exception:
         pass
 
+    cookies_exist = os.path.exists('cookies.txt')
+
     return render_template('settings.html', 
                            blacklist=blacklist.value if blacklist else '',
                            whitelist=whitelist.value if whitelist else '',
@@ -329,7 +332,8 @@ def settings():
                            yt_dlp_auto_update=yt_dlp_auto_update.value if yt_dlp_auto_update else 'false',
                            yt_dlp_version=ytdlp_version,
                            yt_dlp_last_updated=yt_dlp_last_updated.value if yt_dlp_last_updated else 'Never',
-                           next_scan_time=next_scan_time)
+                           next_scan_time=next_scan_time,
+                           cookies_exist=cookies_exist)
 
 @main.route('/settings/logs')
 def get_logs():

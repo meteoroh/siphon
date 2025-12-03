@@ -278,7 +278,18 @@
                 <!-- Cookies -->
                 <div class="card border-0 mb-4">
                     <div class="card-header bg-transparent border-0 pt-4 px-4">
-                        <h5 class="mb-0 fw-bold">Cookies</h5>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold">Cookies</h5>
+                            {% if cookies_exist %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                <i class="bi bi-check-circle me-1"></i> Uploaded
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                <i class="bi bi-x-circle me-1"></i> Not Found
+                            </span>
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="card-body p-4">
                         <p class="text-muted small mb-3">Upload <code>cookies.txt</code> for authenticated scraping</p>
