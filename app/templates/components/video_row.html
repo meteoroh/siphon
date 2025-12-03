@@ -6,7 +6,9 @@
             {{ video.title }}
         </a>
     </td>
+    {% if video.performer.site == 'x' %}
     <td class="text-secondary text-sm">{{ video.date or 'N/A' }}</td>
+    {% endif %}
     <td class="text-secondary text-sm">{{ video.duration or 'N/A' }}</td>
     <td>
         <span class="badge rounded-pill border border-0 

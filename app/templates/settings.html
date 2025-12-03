@@ -206,31 +206,45 @@
                     <div class="card-body p-4">
                         <form hx-post="/settings/localpath" hx-target="#localpath-message" hx-swap="innerHTML">
                             <div class="mb-3">
-                                <label class="form-label text-xs text-uppercase text-muted fw-bold">Download
+                                <label class="form-label text-xs text-uppercase text-muted fw-bold">Default Download
                                     Directory</label>
                                 <input type="text" class="form-control" name="local_scan_path"
                                     value="{{ local_scan_path }}" placeholder="/path/to/videos">
-                                <div class="form-text">Directory where videos will be downloaded.</div>
+                                <div class="form-text">All videos will be downloaded here unless an override is set
+                                    below.</div>
                             </div>
+
                             <div class="mb-3">
-                                <label class="form-label text-xs text-uppercase text-muted fw-bold">Pornhub Download
-                                    Directory (Optional)</label>
-                                <input type="text" class="form-control" name="local_scan_path_pornhub"
-                                    value="{{ local_scan_path_pornhub }}" placeholder="/path/to/pornhub_videos">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#siteOverrides" aria-expanded="false" aria-controls="siteOverrides">
+                                    <i class="bi bi-folder-plus me-1"></i> Configure Site-Specific Paths
+                                </button>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label text-xs text-uppercase text-muted fw-bold">xHamster Download
-                                    Directory (Optional)</label>
-                                <input type="text" class="form-control" name="local_scan_path_xhamster"
-                                    value="{{ local_scan_path_xhamster }}" placeholder="/path/to/xhamster_videos">
+
+                            <div class="collapse mb-3" id="siteOverrides">
+                                <div class="card card-body bg-site-overrides border-0">
+                                    <div class="mb-3">
+                                        <label
+                                            class="form-label text-xs text-uppercase text-muted fw-bold">Pornhub</label>
+                                        <input type="text" class="form-control form-control-sm"
+                                            name="local_scan_path_pornhub" value="{{ local_scan_path_pornhub }}"
+                                            placeholder="Optional override">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label
+                                            class="form-label text-xs text-uppercase text-muted fw-bold">xHamster</label>
+                                        <input type="text" class="form-control form-control-sm"
+                                            name="local_scan_path_xhamster" value="{{ local_scan_path_xhamster }}"
+                                            placeholder="Optional override">
+                                    </div>
+                                    <div class="mb-0">
+                                        <label class="form-label text-xs text-uppercase text-muted fw-bold">X</label>
+                                        <input type="text" class="form-control form-control-sm" name="local_scan_path_x"
+                                            value="{{ local_scan_path_x }}" placeholder="Optional override">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label text-xs text-uppercase text-muted fw-bold">X Download
-                                    Directory (Optional)</label>
-                                <input type="text" class="form-control" name="local_scan_path_x"
-                                    value="{{ local_scan_path_x }}" placeholder="/path/to/x_videos">
-                                <div class="form-text">If set, site-specific paths override the default directory.</div>
-                            </div>
+
                             <div class="mb-4 form-check">
                                 <input type="checkbox" class="form-check-input" id="local_check_existing"
                                     name="local_check_existing" {% if local_check_existing=='true' %}checked{% endif %}>
@@ -405,4 +419,13 @@
         });
     });
 </script>
+<style>
+    .bg-site-overrides {
+        background-color: var(--bs-tertiary-bg);
+    }
+
+    [data-bs-theme="dark"] .bg-site-overrides {
+        background-color: #000 !important;
+    }
+</style>
 {% endblock %}
