@@ -52,6 +52,14 @@
                             scans.</div>
                     </div>
                     <div class="mb-4 form-check">
+                        <input type="checkbox" class="form-check-input" id="auto_download" name="auto_download" {% if
+                            performer.auto_download %}checked{% endif %}>
+                        <label class="form-check-label fw-medium" for="auto_download">Enable Automatic
+                            Downloading</label>
+                        <div class="form-text text-muted">Automatically download new videos found during scheduled
+                            scans.</div>
+                    </div>
+                    <div class="mb-4 form-check">
                         <input type="checkbox" class="form-check-input" id="use_cookies" name="use_cookies" {% if
                             performer.use_cookies %}checked{% endif %}>
                         <label class="form-check-label fw-medium" for="use_cookies">Use Cookies</label>

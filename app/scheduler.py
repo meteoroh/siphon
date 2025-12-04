@@ -12,17 +12,35 @@ def scheduled_scan():
         
         performers = Performer.query.filter_by(scheduled_scan_enabled=True).all()
         total_new = 0
+        auto_download_count = 0
+        
+        from app.tasks import start_task
+        from app.downloader import download_video
         
         for performer in performers:
             try:
                 result = scan_performer_service(performer)
                 total_new += result['new_count']
+                
+                # Trigger Auto-Download
+                if performer.auto_download and result.get('new_video_ids'):
+                    print(f"Triggering auto-download for {performer.name} ({len(result['new_video_ids'])} videos)...")
+                    for vid_id in result['new_video_ids']:
+                        # Double check status to be safe (though service should filter)
+                        # We can't easily check DB here without re-querying, but the ID is fresh.
+                        # Just fire the task.
+                        start_task(download_video, vid_id, trigger_autotag=True)
+                        auto_download_count += 1
+                        
             except Exception as e:
                 print(f"Error scanning {performer.name}: {e}")
         
         if total_new > 0:
             from app.notifications import send_telegram_message
-            send_telegram_message(f"<b>Scheduled Scan Completed</b>\nFound {total_new} new videos.")
+            msg = f"<b>Scheduled Scan Completed</b>\nFound {total_new} new videos."
+            if auto_download_count > 0:
+                msg += f"\nStarted {auto_download_count} automatic downloads."
+            send_telegram_message(msg)
 
 def auto_update_ytdlp():
     import subprocess

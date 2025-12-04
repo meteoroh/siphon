@@ -103,6 +103,7 @@ def update_performer_settings(performer_id):
     performer.blacklist_keywords = request.form.get('blacklist_keywords')
     performer.whitelist_keywords = request.form.get('whitelist_keywords')
     performer.scheduled_scan_enabled = 'scheduled_scan_enabled' in request.form
+    performer.auto_download = 'auto_download' in request.form
     performer.use_cookies = 'use_cookies' in request.form
     try:
         performer.min_duration = int(request.form.get('min_duration', 0))
@@ -537,6 +538,7 @@ def export_performers():
             'site': p.site,
             'type': p.type,
             'scheduled_scan_enabled': p.scheduled_scan_enabled,
+            'auto_download': p.auto_download,
             'blacklist_keywords': p.blacklist_keywords,
             'whitelist_keywords': p.whitelist_keywords,
             'last_scan': p.last_scan.isoformat() if p.last_scan else None,
@@ -591,6 +593,7 @@ def import_performers():
                 performer.site = p_data.get('site', performer.site)
                 performer.type = p_data.get('type', performer.type)
                 performer.scheduled_scan_enabled = p_data.get('scheduled_scan_enabled', performer.scheduled_scan_enabled)
+                performer.auto_download = p_data.get('auto_download', performer.auto_download)
                 
                 # Merge keywords (simple concatenation with comma check would be messy, 
                 # let's just overwrite if provided, or maybe append? 
@@ -616,6 +619,7 @@ def import_performers():
                     site=p_data.get('site'),
                     type=p_data.get('type'),
                     scheduled_scan_enabled=p_data.get('scheduled_scan_enabled', True),
+                    auto_download=p_data.get('auto_download', False),
                     blacklist_keywords=p_data.get('blacklist_keywords'),
                     whitelist_keywords=p_data.get('whitelist_keywords')
                 )

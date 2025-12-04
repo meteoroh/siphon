@@ -183,4 +183,4 @@ def scan_performer_service(performer, task_id=None):
     if task_id:
         update_task_progress(task_id, progress=100, message=f"Scan complete for {performer.name}. Found {new_videos_count} new.")
         
-    return {'new_count': new_videos_count, 'total_found': len(videos)}
+    return {'new_count': new_videos_count, 'total_found': len(videos), 'new_video_ids': [v.id for v in db.session.new if isinstance(v, Video) and v.status == 'new']}

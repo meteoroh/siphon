@@ -9,6 +9,7 @@ class Performer(db.Model):
     blacklist_keywords = db.Column(db.Text, nullable=True) # JSON string or comma-separated
     whitelist_keywords = db.Column(db.Text, nullable=True) # JSON string or comma-separated
     scheduled_scan_enabled = db.Column(db.Boolean, default=True)
+    auto_download = db.Column(db.Boolean, default=False)
     use_cookies = db.Column(db.Boolean, default=False)
     min_duration = db.Column(db.Integer, default=0) # Minimum duration in minutes
     last_scan = db.Column(db.DateTime, nullable=True)
@@ -22,7 +23,8 @@ class Performer(db.Model):
             'name': self.name,
             'site': self.site,
             'type': self.type,
-            'scheduled_scan_enabled': self.scheduled_scan_enabled
+            'scheduled_scan_enabled': self.scheduled_scan_enabled,
+            'auto_download': self.auto_download
         }
 
     @property
