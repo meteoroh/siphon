@@ -79,7 +79,20 @@ def extract_videos_from_json(data, video_links, username):
                     video_url = f"https://x.com/{username}/status/{tweet_id}"
                     
                     # Extract metadata
-                    text = legacy.get('full_text', '')
+                    original_text = legacy.get('full_text', '')
+                    
+                    # Remove t.co links (media links) from title
+                    clean_text = re.sub(r'https://t\.co/\w+', '', original_text).strip()
+                    
+                    # Use cleaned text if it exists, otherwise fallback to original text (t.co link)
+                    # If even original text is empty (unlikely), fallback to video_url
+                    if clean_text:
+                        text = clean_text
+                    elif original_text:
+                        text = original_text
+                    else:
+                        text = video_url
+                    
                     created_at = legacy.get('created_at') # e.g., "Wed Oct 10 20:19:24 +0000 2018"
                     
                     # Parse date
