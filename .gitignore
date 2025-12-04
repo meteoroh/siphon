@@ -12,6 +12,7 @@ wheels/
 # Application Data
 instance/
 downloads/
+tests/
 *.db
 *.sqlite3
 cookies.txt

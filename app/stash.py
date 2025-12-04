@@ -72,7 +72,7 @@ class StashClient:
         else:
             return False, "Invalid response from Stash."
 
-    def check_video_exists(self, url, title, viewkey=None):
+    def check_video_exists(self, url, title, viewkey=None, alternative_ids=None):
         if not self.url:
             return False
 
@@ -91,11 +91,19 @@ class StashClient:
             return True
 
         # 2. Check by Viewkey/Title (Path Match)
-        if not viewkey and not title:
+        search_terms = []
+        if viewkey:
+            search_terms.append(viewkey)
+        
+        if alternative_ids:
+            search_terms.extend(alternative_ids)
+            
+        if not search_terms and title:
+            search_terms.append(title)
+            
+        if not search_terms:
             return False
             
-        search_term = viewkey if viewkey else title
-        
         query_path = """
         query FindSceneByPath($path: String!) {
           findScenes(scene_filter: {
@@ -105,9 +113,11 @@ class StashClient:
           }
         }
         """
-        data = self._post(query_path, {'path': search_term})
-        if data and 'data' in data and 'findScenes' in data['data'] and data['data']['findScenes']['count'] > 0:
-            return True
+        
+        for term in search_terms:
+            data = self._post(query_path, {'path': term})
+            if data and 'data' in data and 'findScenes' in data['data'] and data['data']['findScenes']['count'] > 0:
+                return True
             
         return False
 
@@ -330,9 +340,9 @@ def get_stash_config():
     client = StashClient()
     return client.url, client.api_key
 
-def check_stash_video(url, title, viewkey=None):
+def check_stash_video(url, title, viewkey=None, alternative_ids=None):
     client = StashClient()
-    return client.check_video_exists(url, title, viewkey)
+    return client.check_video_exists(url, title, viewkey, alternative_ids)
 
 def test_stash_connection():
     client = StashClient()

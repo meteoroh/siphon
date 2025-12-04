@@ -89,6 +89,10 @@ def scan_performer_service(performer, task_id=None):
             
         in_stash = False
         if check_stash:
+            # We don't store media_ids in DB currently, so we can't pass them here for existing videos
+            # unless we add a column. But for existing 'new' videos, we might have just scraped them?
+            # No, 'existing_new_videos' are from DB.
+            # So this fallback only works for freshly scraped videos in step 1.
             in_stash = check_stash_video(vid.url, vid.title, vid.viewkey)
             
         if in_stash:
@@ -150,7 +154,7 @@ def scan_performer_service(performer, task_id=None):
             # Check Stash
             in_stash = False
             if check_stash:
-                in_stash = check_stash_video(v_data['url'], v_data['title'], v_data['viewkey'])
+                in_stash = check_stash_video(v_data['url'], v_data['title'], v_data['viewkey'], v_data.get('media_ids'))
             
             # Check Local Path
             in_local = check_local(v_data['viewkey'], v_data['title'])

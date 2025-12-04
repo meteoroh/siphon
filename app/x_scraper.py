@@ -99,12 +99,19 @@ def extract_videos_from_json(data, video_links, username):
                     
                     # Update if new or if upgrading from DOM to API
                     if tweet_id not in video_links or video_links[tweet_id].get('source') == 'dom':
+                        # Collect all media IDs for this tweet (for legacy stash matching)
+                        media_ids = []
+                        for m in media_list:
+                            if m.get('type') == 'video' and m.get('id_str'):
+                                media_ids.append(m.get('id_str'))
+
                         video_links[tweet_id] = {
                             'id': tweet_id,
                             'url': video_url,
                             'text': text,
                             'date': date_str,
                             'duration': duration,
+                            'media_ids': media_ids,
                             'source': 'api'
                         }
 
@@ -339,7 +346,8 @@ def scrape_x_videos(username, task_id=None, use_cookies=False):
                     'viewkey': v['id'],
                     'url': v['url'],
                     'date': v.get('date'),
-                    'duration': format_duration(v.get('duration')) if v.get('duration') else None
+                    'duration': format_duration(v.get('duration')) if v.get('duration') else None,
+                    'media_ids': v.get('media_ids', [])
                 })
             
             return formatted_videos
