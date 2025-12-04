@@ -90,10 +90,11 @@ class StashClient:
         if data and 'data' in data and 'findScenes' in data['data'] and data['data']['findScenes']['count'] > 0:
             return True
 
-        # 2. Check by Viewkey/Title (Path Match)
+        # 2. Check by Media IDs/Title (Path Match)
         search_terms = []
-        if viewkey:
-            search_terms.append(viewkey)
+        # User requested to remove Tweet ID (viewkey) check since it's not in filenames anymore
+        # if viewkey:
+        #     search_terms.append(viewkey)
         
         if alternative_ids:
             search_terms.extend(alternative_ids)

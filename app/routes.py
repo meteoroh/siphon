@@ -4,10 +4,8 @@ from datetime import datetime
 from app.models import Performer, Video, db
 from app.scraper import scrape_performer
 from app.downloader import download_video
-from app.downloader import download_video
 import os
 
-main = Blueprint('main', __name__)
 main = Blueprint('main', __name__)
 
 def run_scan_task(task_id, performer_id):

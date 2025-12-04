@@ -89,11 +89,9 @@ def scan_performer_service(performer, task_id=None):
             
         in_stash = False
         if check_stash:
-            # We don't store media_ids in DB currently, so we can't pass them here for existing videos
-            # unless we add a column. But for existing 'new' videos, we might have just scraped them?
-            # No, 'existing_new_videos' are from DB.
-            # So this fallback only works for freshly scraped videos in step 1.
-            in_stash = check_stash_video(vid.url, vid.title, vid.viewkey)
+            # Parse stored media_ids
+            media_ids = vid.media_ids.split(',') if vid.media_ids else None
+            in_stash = check_stash_video(vid.url, vid.title, vid.viewkey, media_ids)
             
         if in_stash:
             vid.status = 'downloaded'
@@ -164,6 +162,9 @@ def scan_performer_service(performer, task_id=None):
             else:
                 status = 'downloaded' if (in_stash or in_local) else 'new'
             
+            # Join media_ids list to string for storage
+            media_ids_str = ",".join(v_data.get('media_ids', [])) if v_data.get('media_ids') else None
+
             video = Video(
                 performer_id=performer.id,
                 title=v_data['title'],
@@ -171,6 +172,7 @@ def scan_performer_service(performer, task_id=None):
                 viewkey=v_data['viewkey'],
                 date=v_data.get('date'),
                 duration=v_data.get('duration'),
+                media_ids=media_ids_str,
                 status=status
             )
             db.session.add(video)

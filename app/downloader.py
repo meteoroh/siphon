@@ -90,7 +90,7 @@ def download_video(task_id, video_id, trigger_autotag=True):
         
         # Custom template for X to ensure uniqueness and traceability
         if is_x_video:
-            outtmpl = f'%(title)s [x-{video.viewkey}-%(id)s].%(ext)s'
+            outtmpl = f'%(title)s [%(id)s].%(ext)s'
 
         ydl_opts = {
             'paths': {'home': download_dir},

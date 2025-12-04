@@ -51,6 +51,7 @@ class Video(db.Model):
     viewkey = db.Column(db.String(64), nullable=False)
     date = db.Column(db.String(32), nullable=True) # YYYY-MM-DD
     duration = db.Column(db.String(32), nullable=True) # e.g., "10:05"
+    media_ids = db.Column(db.Text, nullable=True) # Comma-separated list of media IDs
     status = db.Column(db.String(32), default='new') # 'new', 'downloaded', 'ignored', 'blacklisted'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
