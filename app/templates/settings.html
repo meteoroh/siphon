@@ -215,9 +215,13 @@
                             </div>
 
                             <div class="mb-3">
-                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#siteOverrides" aria-expanded="false" aria-controls="siteOverrides">
-                                    <i class="bi bi-folder-plus me-1"></i> Configure Site-Specific Paths
+                                <button
+                                    class="btn btn-link link-body-emphasis text-decoration-none p-0 d-inline-flex align-items-center"
+                                    type="button" data-bs-toggle="collapse" data-bs-target="#siteOverrides"
+                                    aria-expanded="false" aria-controls="siteOverrides">
+                                    <i class="bi bi-chevron-right me-2 transition-transform"
+                                        style="font-size: 0.75em;"></i>
+                                    <span>Configure Site-Specific Paths</span>
                                 </button>
                             </div>
 
@@ -426,6 +430,14 @@
 
     [data-bs-theme="dark"] .bg-site-overrides {
         background-color: #000 !important;
+    }
+
+    .transition-transform {
+        transition: transform 0.2s ease-in-out;
+    }
+
+    [aria-expanded="true"] .transition-transform {
+        transform: rotate(90deg);
     }
 </style>
 {% endblock %}
