@@ -26,6 +26,7 @@ def upgrade():
     sa.Column('blacklist_keywords', sa.Text(), nullable=True),
     sa.Column('whitelist_keywords', sa.Text(), nullable=True),
     sa.Column('scheduled_scan_enabled', sa.Boolean(), nullable=True),
+    sa.Column('auto_download', sa.Boolean(), nullable=True),
     sa.Column('use_cookies', sa.Boolean(), nullable=True),
     sa.Column('min_duration', sa.Integer(), nullable=True),
     sa.Column('last_scan', sa.DateTime(), nullable=True),
