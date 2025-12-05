@@ -226,26 +226,22 @@
                             </div>
 
                             <div class="collapse mb-3" id="siteOverrides">
-                                <div class="card card-body bg-site-overrides border-0">
-                                    <div class="mb-3">
-                                        <label
-                                            class="form-label text-xs text-uppercase text-muted fw-bold">Pornhub</label>
-                                        <input type="text" class="form-control form-control-sm"
-                                            name="local_scan_path_pornhub" value="{{ local_scan_path_pornhub }}"
-                                            placeholder="Optional override">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label
-                                            class="form-label text-xs text-uppercase text-muted fw-bold">xHamster</label>
-                                        <input type="text" class="form-control form-control-sm"
-                                            name="local_scan_path_xhamster" value="{{ local_scan_path_xhamster }}"
-                                            placeholder="Optional override">
-                                    </div>
-                                    <div class="mb-0">
-                                        <label class="form-label text-xs text-uppercase text-muted fw-bold">X</label>
-                                        <input type="text" class="form-control form-control-sm" name="local_scan_path_x"
-                                            value="{{ local_scan_path_x }}" placeholder="Optional override">
-                                    </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-xs text-uppercase text-muted fw-bold">Pornhub</label>
+                                    <input type="text" class="form-control form-control-sm"
+                                        name="local_scan_path_pornhub" value="{{ local_scan_path_pornhub }}"
+                                        placeholder="Optional override">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-xs text-uppercase text-muted fw-bold">xHamster</label>
+                                    <input type="text" class="form-control form-control-sm"
+                                        name="local_scan_path_xhamster" value="{{ local_scan_path_xhamster }}"
+                                        placeholder="Optional override">
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label text-xs text-uppercase text-muted fw-bold">X</label>
+                                    <input type="text" class="form-control form-control-sm" name="local_scan_path_x"
+                                        value="{{ local_scan_path_x }}" placeholder="Optional override">
                                 </div>
                             </div>
 
@@ -424,14 +420,6 @@
     });
 </script>
 <style>
-    .bg-site-overrides {
-        background-color: var(--bs-tertiary-bg);
-    }
-
-    [data-bs-theme="dark"] .bg-site-overrides {
-        background-color: #000 !important;
-    }
-
     .transition-transform {
         transition: transform 0.2s ease-in-out;
     }
