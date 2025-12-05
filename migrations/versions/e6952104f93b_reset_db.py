@@ -48,6 +48,7 @@ def upgrade():
     sa.Column('viewkey', sa.String(length=64), nullable=False),
     sa.Column('date', sa.String(length=32), nullable=True),
     sa.Column('duration', sa.String(length=32), nullable=True),
+    sa.Column('media_ids', sa.Text(), nullable=True),
     sa.Column('status', sa.String(length=32), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['performer_id'], ['performer.id'], ),
