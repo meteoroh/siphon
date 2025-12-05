@@ -16,15 +16,15 @@ services:
       - DATABASE_URL=sqlite:///siphon.db
     # network_mode: "service:vpn" # Uncomment to use VPN container
 
-  # VPN Container Placeholder (e.g., gluetun)
-  # vpn:
-  #   image: qmcgaw/gluetun
-  #   container_name: siphon_vpn
-  #   cap_add:
-  #     - NET_ADMIN
-  #   environment:
-  #     - VPN_SERVICE_PROVIDER=custom
-  #     - OPENVPN_USER=user
-  #     - OPENVPN_PASSWORD=password
-  #   ports:
-  #     - "5000:5000" # Expose web port through VPN container
+    # VPN Container Placeholder (e.g., gluetun)
+    # vpn:
+    #   image: qmcgaw/gluetun
+    #   container_name: siphon_vpn
+    #   cap_add:
+    #     - NET_ADMIN
+    #   environment:
+    #     - VPN_SERVICE_PROVIDER=custom
+    #     - OPENVPN_USER=user
+    #     - OPENVPN_PASSWORD=password
+    #   ports:
+    #     - "5000:5000" # Expose web port through VPN container
