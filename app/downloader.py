@@ -2,7 +2,6 @@ import yt_dlp
 import os
 from app import db
 from app.models import Video
-from app.models import Video
 import logging
 
 logger = logging.getLogger(__name__)
